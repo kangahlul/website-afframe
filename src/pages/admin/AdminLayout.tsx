@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
+import { normalizeMediaUrl } from '../../lib/mediaUtils';
 
 interface NavMenuItem {
   label: string;
@@ -105,23 +106,48 @@ export const AdminLayout: React.FC = () => {
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* Brand header in sidebar */}
-          <div className="p-5 border-b border-[#202026] flex items-center justify-between">
-            <Link to="/admin" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-sm border border-[#C5A880]/60 flex items-center justify-center bg-[#18181D]">
-                <span className="font-serif text-base font-bold text-[#F8F6F0]">AF</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-serif text-lg tracking-wider font-semibold text-[#F8F6F0] leading-none">
-                  AF FRAME
-                </span>
-                <span className="text-[9px] uppercase tracking-widest text-[#C5A880] mt-0.5">
-                  Admin Panel CMS
-                </span>
-              </div>
+          <div className="p-4 border-b border-[#202026] flex items-center justify-between">
+            <Link to="/admin" className="flex items-center gap-2.5 group min-w-0">
+              {settings.logo_light || settings.logo_primary ? (
+                <div className="flex items-center gap-2 truncate">
+                  <img
+                    src={normalizeMediaUrl(settings.logo_light || settings.logo_primary)}
+                    alt={settings.brand_name || 'AF Frame'}
+                    className="h-8 max-w-[125px] w-auto object-contain"
+                  />
+                  <span className="text-[9px] uppercase tracking-wider text-[#C5A880] font-mono px-1 py-0.5 bg-[#18181D] border border-zinc-800 rounded shrink-0">
+                    CMS
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-sm border border-[#C5A880]/60 flex items-center justify-center bg-[#18181D] overflow-hidden shrink-0">
+                    {settings.logo_monogram ? (
+                      <img
+                        src={normalizeMediaUrl(settings.logo_monogram)}
+                        alt="Monogram"
+                        className="w-full h-full object-contain p-0.5"
+                      />
+                    ) : (
+                      <span className="font-serif text-base font-bold text-[#F8F6F0]">
+                        {settings.brand_name ? settings.brand_name.slice(0, 2).toUpperCase() : 'AF'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col truncate">
+                    <span className="font-serif text-lg tracking-wider font-semibold text-[#F8F6F0] leading-none group-hover:text-[#C5A880] transition-colors truncate">
+                      {settings.brand_name || 'AF FRAME'}
+                    </span>
+                    <span className="text-[9px] uppercase tracking-widest text-[#C5A880] mt-0.5 font-sans">
+                      Admin Panel CMS
+                    </span>
+                  </div>
+                </div>
+              )}
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1 text-zinc-400 hover:text-white"
+              className="lg:hidden p-1 text-zinc-400 hover:text-white shrink-0"
             >
               <X className="w-5 h-5" />
             </button>

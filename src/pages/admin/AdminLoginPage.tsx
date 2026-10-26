@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Lock, Mail, ArrowRight, ShieldCheck, Camera } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useSite } from '../../context/SiteContext';
+import { normalizeMediaUrl } from '../../lib/mediaUtils';
 
 export const AdminLoginPage: React.FC = () => {
   const { login } = useAuth();
+  const { settings } = useSite();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('admin@afframe.com');
@@ -31,16 +34,34 @@ export const AdminLoginPage: React.FC = () => {
     <div className="min-h-screen bg-[#09090A] flex flex-col justify-center items-center px-4 py-12">
       <div className="w-full max-w-md space-y-8">
         
-        {/* Brand Monogram */}
+        {/* Brand Logo & Heading */}
         <div className="text-center space-y-3">
           <Link to="/" className="inline-flex items-center justify-center gap-3 group">
-            <div className="w-12 h-12 rounded-sm border border-[#C5A880]/60 flex items-center justify-center bg-[#131316]">
-              <span className="font-serif text-2xl font-bold tracking-wider text-[#F8F6F0]">AF</span>
-            </div>
+            {settings.logo_light || settings.logo_primary ? (
+              <img
+                src={normalizeMediaUrl(settings.logo_light || settings.logo_primary)}
+                alt={settings.brand_name || 'AF Frame'}
+                className="h-12 w-auto max-w-[200px] object-contain mx-auto"
+              />
+            ) : settings.logo_monogram ? (
+              <div className="w-12 h-12 rounded-sm border border-[#C5A880]/60 flex items-center justify-center bg-[#131316] overflow-hidden p-1">
+                <img
+                  src={normalizeMediaUrl(settings.logo_monogram)}
+                  alt="Monogram"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-sm border border-[#C5A880]/60 flex items-center justify-center bg-[#131316]">
+                <span className="font-serif text-2xl font-bold tracking-wider text-[#F8F6F0]">
+                  {settings.brand_name ? settings.brand_name.slice(0, 2).toUpperCase() : 'AF'}
+                </span>
+              </div>
+            )}
           </Link>
           <div className="flex flex-col">
             <h1 className="font-serif text-3xl font-light text-[#F8F6F0] tracking-wider">
-              AF FRAME CMS
+              {settings.brand_name || 'AF FRAME'} CMS
             </h1>
             <p className="text-xs uppercase tracking-[0.2em] text-[#C5A880] mt-1 font-sans">
               Admin Control Panel

@@ -35,12 +35,6 @@ export const WhyUsSection: React.FC<WhyUsSectionProps> = ({ section }) => {
 
   useEffect(() => {
     loadBenefits();
-
-    const handleFocus = () => {
-      loadBenefits();
-    };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
   }, [loadBenefits]);
 
   if (section && !section.is_visible) return null;

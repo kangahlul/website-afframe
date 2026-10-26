@@ -64,12 +64,6 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ section, onSel
 
   useEffect(() => {
     loadServices();
-
-    const handleFocus = () => {
-      loadServices();
-    };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
   }, [loadServices]);
 
   // Update arrow buttons visibility based on scroll position

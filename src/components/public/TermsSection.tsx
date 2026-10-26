@@ -24,12 +24,6 @@ export const TermsSection: React.FC<TermsSectionProps> = ({ section }) => {
 
   useEffect(() => {
     loadTerms();
-
-    const handleFocus = () => {
-      loadTerms();
-    };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
   }, [loadTerms]);
 
   if (section && !section.is_visible) return null;

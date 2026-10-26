@@ -27,12 +27,6 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ section }) => {
 
   useEffect(() => {
     loadFaqs();
-
-    const handleFocus = () => {
-      loadFaqs();
-    };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
   }, [loadFaqs]);
 
   if (section && !section.is_visible) return null;

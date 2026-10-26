@@ -137,13 +137,13 @@ export const ProjectDetailPage: React.FC = () => {
                   {getVideoEmbedUrl(project.featured_video_url) ? (
                     <iframe
                       src={getVideoEmbedUrl(project.featured_video_url)!}
-                      title="Project Video"
+                      title="Project Cinematic Video"
                       className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                     />
                   ) : (
-                    <video src={project.featured_video_url} controls className="w-full h-full object-contain" />
+                    <video src={project.featured_video_url} controls playsInline className="w-full h-full object-contain" />
                   )}
                 </div>
               </div>

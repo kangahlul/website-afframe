@@ -39,11 +39,40 @@ const defaultSettings: SiteSettings = {
 
 const SiteContext = createContext<SiteContextType | undefined>(undefined);
 
+const getCachedSettings = (): SiteSettings => {
+  try {
+    const raw = localStorage.getItem('afframe_site_settings');
+    if (raw) {
+      return { ...defaultSettings, ...JSON.parse(raw) };
+    }
+  } catch (e) {}
+  return defaultSettings;
+};
+
+const getCachedSections = (): WebsiteSection[] => {
+  try {
+    const raw = localStorage.getItem('afframe_site_sections');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+};
+
+const getCachedNavigation = (): NavigationItem[] => {
+  try {
+    const raw = localStorage.getItem('afframe_site_nav');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+};
+
 export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
-  const [sections, setSections] = useState<WebsiteSection[]>([]);
-  const [navigation, setNavigation] = useState<NavigationItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [settings, setSettings] = useState<SiteSettings>(getCachedSettings);
+  const [sections, setSections] = useState<WebsiteSection[]>(getCachedSections);
+  const [navigation, setNavigation] = useState<NavigationItem[]>(getCachedNavigation);
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    // If cached settings already exist, do not block or show loading skeleton
+    return !localStorage.getItem('afframe_site_settings');
+  });
 
   const fetchSiteData = useCallback(async () => {
     try {
@@ -54,16 +83,26 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ]);
 
       if (settingsRes.settings) {
-        setSettings({ ...defaultSettings, ...settingsRes.settings });
+        const merged = { ...defaultSettings, ...settingsRes.settings };
+        setSettings(merged);
+        try {
+          localStorage.setItem('afframe_site_settings', JSON.stringify(merged));
+        } catch (e) {}
       }
       if (sectionsRes.sections) {
         setSections(sectionsRes.sections);
+        try {
+          localStorage.setItem('afframe_site_sections', JSON.stringify(sectionsRes.sections));
+        } catch (e) {}
       }
       if (navRes.items) {
         setNavigation(navRes.items);
+        try {
+          localStorage.setItem('afframe_site_nav', JSON.stringify(navRes.items));
+        } catch (e) {}
       }
     } catch (err) {
-      console.error('Failed to load initial site data:', err);
+      console.error('Failed to load site data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -72,9 +111,13 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     fetchSiteData();
 
-    // Auto-refresh data whenever the tab gains focus (e.g. after editing in Admin)
+    // Debounced focus sync (minimum 15 seconds between focus refreshes to avoid spam)
+    let lastFocus = Date.now();
     const handleFocus = () => {
-      fetchSiteData();
+      if (Date.now() - lastFocus > 15000) {
+        lastFocus = Date.now();
+        fetchSiteData();
+      }
     };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
@@ -82,7 +125,13 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateSettings = async (newSettings: Partial<SiteSettings>) => {
     await api.put('/settings', newSettings);
-    setSettings(prev => ({ ...prev, ...newSettings }));
+    setSettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      try {
+        localStorage.setItem('afframe_site_settings', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
   };
 
   return (

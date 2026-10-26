@@ -25,12 +25,6 @@ export const ServiceAreasSection: React.FC<ServiceAreasSectionProps> = ({ sectio
 
   useEffect(() => {
     loadAreas();
-
-    const handleFocus = () => {
-      loadAreas();
-    };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
   }, [loadAreas]);
 
   if (section && !section.is_visible) return null;

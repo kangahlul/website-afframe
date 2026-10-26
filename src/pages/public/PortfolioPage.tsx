@@ -164,6 +164,22 @@ export const PortfolioPage: React.FC = () => {
                       </div>
                     )}
 
+                    {/* Prominent Video Play Badge */}
+                    {project.featured_video_url && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveVideoUrl(project.featured_video_url);
+                        }}
+                        className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1 bg-[#C5A880] hover:bg-[#B39366] text-[#0C0C0D] rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg transition-transform hover:scale-105 cursor-pointer"
+                        title="Tonton Video"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        <span>Putar Video</span>
+                      </button>
+                    )}
+
                     {/* Quick Action Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40 backdrop-blur-xs">
                       <button
@@ -258,13 +274,13 @@ export const PortfolioPage: React.FC = () => {
             {getVideoEmbedUrl(activeVideoUrl) ? (
               <iframe
                 src={getVideoEmbedUrl(activeVideoUrl)!}
-                title="AF Frame Video"
+                title="AF Frame Video Player"
                 className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               />
             ) : (
-              <video src={activeVideoUrl} controls autoPlay className="w-full h-full object-contain" />
+              <video src={activeVideoUrl} controls autoPlay playsInline className="w-full h-full object-contain" />
             )}
           </div>
         </div>
