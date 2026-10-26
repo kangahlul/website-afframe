@@ -98,3 +98,43 @@ export function getVideoEmbedUrl(url: string | null | undefined): string | null 
   return null;
 }
 
+export function getDynamicFaviconUrl(settings: {
+  favicon_url?: string;
+  logo_monogram?: string;
+  logo_primary?: string;
+  logo_light?: string;
+  logo_style?: string;
+  logo_initials?: string;
+  brand_name?: string;
+}): string {
+  // 1. If explicit custom favicon uploaded/entered (not the default /favicon.svg)
+  if (settings.favicon_url && settings.favicon_url !== '/favicon.svg' && settings.favicon_url.trim() !== '') {
+    return normalizeMediaUrl(settings.favicon_url);
+  }
+
+  // 2. If monogram/compact mark exists, use it as favicon
+  if (settings.logo_monogram && settings.logo_monogram.trim() !== '') {
+    return normalizeMediaUrl(settings.logo_monogram);
+  }
+
+  // 3. If image_only style and logo image exists, use it
+  if (settings.logo_style === 'image_only' && (settings.logo_primary || settings.logo_light)) {
+    return normalizeMediaUrl((settings.logo_primary || settings.logo_light)!);
+  }
+
+  // 4. Dynamically generate an SVG data URI based on brand initials
+  const initials = (
+    settings.logo_initials ||
+    (settings.brand_name ? settings.brand_name.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2) : 'AF')
+  ).toUpperCase().slice(0, 3) || 'AF';
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <rect width="100" height="100" rx="22" fill="#0D0D0E"/>
+  <rect x="2" y="2" width="96" height="96" rx="20" stroke="#C5A880" stroke-width="3" stroke-opacity="0.9"/>
+  <text x="50" y="64" font-family="'Cormorant Garamond', 'Georgia', serif" font-size="44" font-weight="700" fill="#F8F6F0" text-anchor="middle" letter-spacing="2">${initials}</text>
+  <line x1="28" y1="76" x2="72" y2="76" stroke="#C5A880" stroke-width="2.5" stroke-opacity="0.9"/>
+</svg>`;
+
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+

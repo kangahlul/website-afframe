@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { SiteSettings, WebsiteSection, NavigationItem } from '../types';
 import { api } from '../lib/api';
+import { getDynamicFaviconUrl } from '../lib/mediaUtils';
 
 interface SiteContextType {
   settings: SiteSettings;
@@ -130,16 +131,37 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const tagline = settings.tagline ? ` | ${settings.tagline}` : '';
       document.title = `${baseTitle}${tagline}`;
     }
-    if (settings.favicon_url) {
-      let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'shortcut icon';
-        document.getElementsByTagName('head')[0].appendChild(link);
+
+    // Dynamic favicon: follows logo_monogram, custom favicon_url, or auto-generated initials
+    const faviconUrl = getDynamicFaviconUrl(settings);
+    if (faviconUrl) {
+      try {
+        const existingLinks = document.querySelectorAll("link[rel*='icon']");
+        existingLinks.forEach(el => el.remove());
+
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        if (faviconUrl.startsWith('data:image/svg') || faviconUrl.includes('.svg')) {
+          link.type = 'image/svg+xml';
+        } else if (faviconUrl.includes('.png')) {
+          link.type = 'image/png';
+        }
+        link.href = faviconUrl;
+        document.head.appendChild(link);
+      } catch (e) {
+        console.error('Failed to update favicon:', e);
       }
-      link.href = settings.favicon_url;
     }
-  }, [settings.brand_name, settings.tagline, settings.favicon_url]);
+  }, [
+    settings.brand_name,
+    settings.tagline,
+    settings.favicon_url,
+    settings.logo_monogram,
+    settings.logo_primary,
+    settings.logo_light,
+    settings.logo_initials,
+    settings.logo_style
+  ]);
 
   const updateSettings = async (newSettings: Partial<SiteSettings>) => {
     await api.put('/settings', newSettings);

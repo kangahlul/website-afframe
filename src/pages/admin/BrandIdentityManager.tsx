@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Palette, Upload, Image, Check, RefreshCw, Trash2, Link2, ExternalLink } from 'lucide-react';
 import { useSite } from '../../context/SiteContext';
 import { api } from '../../lib/api';
-import { normalizeMediaUrl } from '../../lib/mediaUtils';
+import { normalizeMediaUrl, getDynamicFaviconUrl } from '../../lib/mediaUtils';
 
 export const BrandIdentityManager: React.FC = () => {
   const { settings, refreshSiteData, updateSettings } = useSite();
@@ -43,7 +43,7 @@ export const BrandIdentityManager: React.FC = () => {
         logo_light: settings.logo_light || '',
         logo_dark: settings.logo_dark || '',
         logo_monogram: settings.logo_monogram || '',
-        favicon_url: settings.favicon_url || '/favicon.svg',
+        favicon_url: settings.favicon_url === '/favicon.svg' ? '' : (settings.favicon_url || ''),
         og_image: settings.og_image || '',
         primary_color: settings.primary_color || '#C5A880',
         bg_color: settings.bg_color || '#0C0C0D',
@@ -58,6 +58,8 @@ export const BrandIdentityManager: React.FC = () => {
     setForm(prev => ({ ...prev, [key]: val }));
   };
 
+  const activeFavicon = getDynamicFaviconUrl(form);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -66,9 +68,13 @@ export const BrandIdentityManager: React.FC = () => {
       const res = await api.uploadFiles([file], 'brand');
       if (res.assets && res.assets[0]) {
         handleChange(key, res.assets[0].url);
+        // If uploading monogram, automatically sync favicon to it if not set
+        if (key === 'logo_monogram' && (!form.favicon_url || form.favicon_url === '/favicon.svg')) {
+          handleChange('favicon_url', res.assets[0].url);
+        }
       }
     } catch (err: any) {
-      alert(err.message || 'Gagal mengunggah logo');
+      alert(err.message || 'Gagal mengunggah berkas');
     }
   };
 
@@ -291,12 +297,12 @@ export const BrandIdentityManager: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs pt-2">
             {/* Primary Logo */}
             <div className="space-y-3 p-4 bg-[#18181D] border border-zinc-800 rounded flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-zinc-300 block">Logo Utama (Header & Brand)</span>
+                  <span className="font-semibold text-zinc-300 block">Logo Utama (Brand)</span>
                   {(form.logo_primary || form.logo_light) && (
                     <button
                       type="button"
@@ -316,13 +322,13 @@ export const BrandIdentityManager: React.FC = () => {
                   {form.logo_primary || form.logo_light ? (
                     <img src={normalizeMediaUrl(form.logo_primary || form.logo_light)} alt="Primary Logo" className="max-h-full max-w-full object-contain" />
                   ) : (
-                    <span className="text-[#C5A880] font-serif text-base tracking-wider">AF FRAME (Teks Gold)</span>
+                    <span className="text-[#C5A880] font-serif text-sm tracking-wider">AF FRAME (Gold)</span>
                   )}
                 </div>
                 <label className="text-zinc-400 block mb-1 font-mono text-[11px]">Tautan / URL Logo:</label>
                 <input
                   type="text"
-                  placeholder="https://... atau paste link gambar"
+                  placeholder="https://... atau paste link"
                   value={form.logo_primary || form.logo_light}
                   onChange={e => {
                     const norm = normalizeMediaUrl(e.target.value);
@@ -333,7 +339,7 @@ export const BrandIdentityManager: React.FC = () => {
                 />
               </div>
               <label className="block text-center py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer transition-colors font-medium">
-                <span>📁 Unggah Berkas Logo Baru</span>
+                <span>📁 Unggah Logo</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -359,13 +365,13 @@ export const BrandIdentityManager: React.FC = () => {
             <div className="space-y-3 p-4 bg-[#18181D] border border-zinc-800 rounded flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-zinc-300 block">Monogram / Compact Mark</span>
+                  <span className="font-semibold text-zinc-300 block">Monogram / Mark</span>
                   {form.logo_monogram && (
                     <button
                       type="button"
                       onClick={() => handleChange('logo_monogram', '')}
                       className="text-red-400 hover:text-red-300 flex items-center gap-1 text-[11px]"
-                      title="Hapus Monogram (Kembali ke Kotak AF)"
+                      title="Hapus Monogram (Kembali ke Kotak Inisial)"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Hapus</span>
@@ -376,7 +382,9 @@ export const BrandIdentityManager: React.FC = () => {
                   {form.logo_monogram ? (
                     <img src={normalizeMediaUrl(form.logo_monogram)} alt="Monogram" className="max-h-full max-w-full object-contain" />
                   ) : (
-                    <div className="w-10 h-10 border border-[#C5A880] flex items-center justify-center font-serif text-lg font-bold text-[#F8F6F0]">AF</div>
+                    <div className="w-9 h-9 border border-[#C5A880] flex items-center justify-center font-serif text-base font-bold text-[#F8F6F0]">
+                      {form.logo_initials || 'AF'}
+                    </div>
                   )}
                 </div>
                 <label className="text-zinc-400 block mb-1 font-mono text-[11px]">Tautan / URL Monogram:</label>
@@ -389,16 +397,103 @@ export const BrandIdentityManager: React.FC = () => {
                 />
               </div>
               <label className="block text-center py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer transition-colors font-medium">
-                <span>📁 Unggah Berkas Monogram</span>
+                <span>📁 Unggah Monogram</span>
                 <input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logo_monogram')} className="hidden" />
               </label>
             </div>
 
-            {/* Favicon & OG Image */}
+            {/* Favicon (Tab Icon) */}
             <div className="space-y-3 p-4 bg-[#18181D] border border-zinc-800 rounded flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-zinc-300 block">Social Share Card (OG Image)</span>
+                  <span className="font-semibold text-zinc-300 block">Favicon (Ikon Tab)</span>
+                  {form.favicon_url && form.favicon_url !== '/favicon.svg' && (
+                    <button
+                      type="button"
+                      onClick={() => handleChange('favicon_url', '')}
+                      className="text-amber-400 hover:text-amber-300 flex items-center gap-1 text-[11px]"
+                      title="Kembali ke Mode Otomatis Ikuti Logo"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Auto</span>
+                    </button>
+                  )}
+                </div>
+                
+                {/* Visual Tab Simulation */}
+                <div className="aspect-[3/1] bg-black/60 border border-dashed border-zinc-700 rounded flex items-center justify-center p-2 overflow-hidden mb-3">
+                  <div className="px-2.5 py-1 rounded-t bg-[#1b1b22] border-t border-x border-[#C5A880]/50 flex items-center gap-2 max-w-[180px] shadow-sm">
+                    <div className="w-4 h-4 rounded-xs border border-[#C5A880]/60 flex items-center justify-center bg-[#0C0C0D] overflow-hidden shrink-0">
+                      <img
+                        src={activeFavicon}
+                        alt="Favicon Tab Preview"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <span className="text-[10px] text-zinc-300 truncate font-sans font-medium">
+                      {form.brand_name || 'AF Frame'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-zinc-400 mb-1">
+                  Sumber:{' '}
+                  <span className="text-[#C5A880] font-mono">
+                    {form.favicon_url && form.favicon_url !== '/favicon.svg'
+                      ? 'Ikon Kustom'
+                      : form.logo_monogram
+                      ? 'Otomatis Monogram'
+                      : 'Otomatis Inisial Teks'}
+                  </span>
+                </div>
+
+                <label className="text-zinc-400 block mb-1 font-mono text-[11px]">Tautan / URL Favicon:</label>
+                <input
+                  type="text"
+                  placeholder="Kosongkan untuk auto ikuti logo"
+                  value={form.favicon_url}
+                  onChange={e => handleChange('favicon_url', normalizeMediaUrl(e.target.value))}
+                  className="w-full px-2.5 py-1.5 bg-[#121215] border border-zinc-700 rounded text-zinc-200 text-xs mb-1"
+                />
+
+                <div className="flex items-center gap-2 pt-1 pb-1">
+                  {form.logo_monogram && (
+                    <button
+                      type="button"
+                      onClick={() => handleChange('favicon_url', form.logo_monogram)}
+                      className="text-[10px] text-[#C5A880] hover:underline"
+                    >
+                      🔗 Samakan Monogram
+                    </button>
+                  )}
+                  {form.favicon_url && (
+                    <button
+                      type="button"
+                      onClick={() => handleChange('favicon_url', '')}
+                      className="text-[10px] text-zinc-400 hover:text-white hover:underline ml-auto"
+                    >
+                      ✨ Mode Auto
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <label className="block text-center py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer transition-colors font-medium">
+                <span>📁 Unggah Favicon</span>
+                <input
+                  type="file"
+                  accept="image/png,image/svg+xml,image/x-icon,image/jpeg"
+                  onChange={e => handleFileUpload(e, 'favicon_url')}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Social Share Card (OG Image) */}
+            <div className="space-y-3 p-4 bg-[#18181D] border border-zinc-800 rounded flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-zinc-300 block">Social Card (OG)</span>
                   {form.og_image && (
                     <button
                       type="button"
@@ -428,7 +523,7 @@ export const BrandIdentityManager: React.FC = () => {
                 />
               </div>
               <label className="block text-center py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer transition-colors font-medium">
-                <span>📁 Unggah Berkas Gambar OG</span>
+                <span>📁 Unggah Gambar OG</span>
                 <input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'og_image')} className="hidden" />
               </label>
             </div>
