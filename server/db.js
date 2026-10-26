@@ -8,8 +8,15 @@ if (fs.existsSync(envPath)) {
   require('dotenv').config({ path: envPath });
 }
 
-const TURSO_URL = process.env.TURSO_DATABASE_URL || 'libsql://afframe-db-kangahlul.aws-ap-northeast-1.turso.io';
-const TURSO_TOKEN = process.env.TURSO_AUTH_TOKEN || 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTMwMDQ1NzQsImlkIjoiMDFhMTc3NjUtMTEwMS03NzhkLTljNzQtMmM0OWU0MjJiNTUwIiwia2lkIjoiSkJqcHYtYXJqVHh0SEFXYkxNSGNyOV9qVlFQRVJ1ZFJBbEkxRGlUT2I5ZyIsInJpZCI6IjRmNDc1YTI4LWJhYWItNDc1YS04YzZiLTk2NDIxY2Q5MThhMiJ9.0BpV_sBctFhCDsHqQ8984xLEvRSwuLPpbqJVsK7tdeqReRGKNW4monbmD5PfXEODm6rCAXFGBj3pD2eZ8UzuAg';
+let TURSO_URL = (process.env.TURSO_DATABASE_URL || '').trim();
+if (!TURSO_URL.startsWith('libsql://') && !TURSO_URL.startsWith('https://')) {
+  TURSO_URL = 'libsql://afframe-db-kangahlul.aws-ap-northeast-1.turso.io';
+}
+
+let TURSO_TOKEN = (process.env.TURSO_AUTH_TOKEN || '').trim();
+if (!TURSO_TOKEN.startsWith('eyJ')) {
+  TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTMwMDQ1NzQsImlkIjoiMDFhMTc3NjUtMTEwMS03NzhkLTljNzQtMmM0OWU0MjJiNTUwIiwia2lkIjoiSkJqcHYtYXJqVHh0SEFXYkxNSGNyOV9qVlFQRVJ1ZFJBbEkxRGlUT2I5ZyIsInJpZCI6IjRmNDc1YTI4LWJhYWItNDc1YS04YzZiLTk2NDIxY2Q5MThhMiJ9.0BpV_sBctFhCDsHqQ8984xLEvRSwuLPpbqJVsK7tdeqReRGKNW4monbmD5PfXEODm6rCAXFGBj3pD2eZ8UzuAg';
+}
 
 const tursoClient = createClient({
   url: TURSO_URL,
