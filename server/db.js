@@ -71,9 +71,13 @@ async function syncFromTurso() {
       return;
     }
 
+    db.pragma('foreign_keys = OFF');
     for (const table of tables) {
       const res = await tursoClient.execute(`SELECT * FROM ${table}`);
-      if (!res.rows || res.rows.length === 0) continue;
+      if (!res.rows) continue;
+
+      db.exec(`DELETE FROM ${table};`);
+      if (res.rows.length === 0) continue;
 
       const keys = Object.keys(res.rows[0]);
       const placeholders = keys.map(() => '?').join(', ');
@@ -86,8 +90,10 @@ async function syncFromTurso() {
       });
       tx(res.rows);
     }
+    db.pragma('foreign_keys = ON');
     console.log('[Turso] Startup sync complete. Local cache restored from Turso Cloud.');
   } catch (err) {
+    db.pragma('foreign_keys = ON');
     console.error('[Turso Sync Error on startup]', err.message);
   }
 }
