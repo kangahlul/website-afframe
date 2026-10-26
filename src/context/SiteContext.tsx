@@ -71,6 +71,13 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     fetchSiteData();
+
+    // Auto-refresh data whenever the tab gains focus (e.g. after editing in Admin)
+    const handleFocus = () => {
+      fetchSiteData();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [fetchSiteData]);
 
   const updateSettings = async (newSettings: Partial<SiteSettings>) => {

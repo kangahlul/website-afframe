@@ -29,7 +29,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ section, onSel
   const { settings } = useSite();
   const [services, setServices] = useState<Service[]>([]);
   // Default to first service id so it's not overwhelming, with 'all' available as an option
-  const [selectedFilter, setSelectedFilter] = useState<'all' | number | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | number | null>('all');
   const [loading, setLoading] = useState(true);
 
   // Slider scroll state
@@ -43,24 +43,27 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ section, onSel
   const scrollLeftRef = useRef(0);
   const hasDraggedRef = useRef(false);
 
-  useEffect(() => {
-    async function loadServices() {
-      try {
-        const res = await api.get<{ services: Service[] }>('/services');
-        const svcList = res.services || [];
-        setServices(svcList);
-        if (svcList.length > 0) {
-          // Default to first category (e.g. Graduation) so initial page view is clean and concise
-          setSelectedFilter(svcList[0].id);
-        }
-      } catch (err) {
-        console.error('Failed to load services & packages:', err);
-      } finally {
-        setLoading(false);
-      }
+  const loadServices = useCallback(async () => {
+    try {
+      const res = await api.get<{ services: Service[] }>('/services');
+      const svcList = res.services || [];
+      setServices(svcList);
+    } catch (err) {
+      console.error('Failed to load services & packages:', err);
+    } finally {
+      setLoading(false);
     }
-    loadServices();
   }, []);
+
+  useEffect(() => {
+    loadServices();
+
+    const handleFocus = () => {
+      loadServices();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadServices]);
 
   // Update arrow buttons visibility based on scroll position
   const checkScrollBounds = useCallback(() => {

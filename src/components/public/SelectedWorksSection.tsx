@@ -18,23 +18,30 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [projRes, catRes] = await Promise.all([
-          api.get<{ projects: PortfolioProject[] }>('/portfolio/projects', { limit: 6, all: false }),
-          api.get<{ categories: PortfolioCategory[] }>('/portfolio/categories'),
-        ]);
-        setProjects(projRes.projects || []);
-        setCategories(catRes.categories || []);
-      } catch (err) {
-        console.error('Failed to load portfolio:', err);
-      } finally {
-        setLoading(false);
-      }
+  const loadData = React.useCallback(async () => {
+    try {
+      const [projRes, catRes] = await Promise.all([
+        api.get<{ projects: PortfolioProject[] }>('/portfolio/projects', { limit: 12, all: false }),
+        api.get<{ categories: PortfolioCategory[] }>('/portfolio/categories'),
+      ]);
+      setProjects(projRes.projects || []);
+      setCategories(catRes.categories || []);
+    } catch (err) {
+      console.error('Failed to load portfolio:', err);
+    } finally {
+      setLoading(false);
     }
-    loadData();
   }, []);
+
+  useEffect(() => {
+    loadData();
+
+    const handleFocus = () => {
+      loadData();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadData]);
 
   if (section && !section.is_visible) return null;
 

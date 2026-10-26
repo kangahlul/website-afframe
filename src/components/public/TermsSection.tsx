@@ -11,19 +11,26 @@ export const TermsSection: React.FC<TermsSectionProps> = ({ section }) => {
   const [terms, setTerms] = useState<TermsContent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadTerms() {
-      try {
-        const res = await api.get<{ terms: TermsContent[] }>('/content/terms');
-        setTerms(res.terms || []);
-      } catch (err) {
-        console.error('Failed to load terms:', err);
-      } finally {
-        setLoading(false);
-      }
+  const loadTerms = React.useCallback(async () => {
+    try {
+      const res = await api.get<{ terms: TermsContent[] }>('/content/terms');
+      setTerms(res.terms || []);
+    } catch (err) {
+      console.error('Failed to load terms:', err);
+    } finally {
+      setLoading(false);
     }
-    loadTerms();
   }, []);
+
+  useEffect(() => {
+    loadTerms();
+
+    const handleFocus = () => {
+      loadTerms();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadTerms]);
 
   if (section && !section.is_visible) return null;
 

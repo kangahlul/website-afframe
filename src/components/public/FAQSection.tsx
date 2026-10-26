@@ -14,19 +14,26 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ section }) => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadFaqs() {
-      try {
-        const res = await api.get<{ faqs: FaqItem[] }>('/content/faqs');
-        setFaqs(res.faqs || []);
-      } catch (err) {
-        console.error('Failed to load FAQs:', err);
-      } finally {
-        setLoading(false);
-      }
+  const loadFaqs = React.useCallback(async () => {
+    try {
+      const res = await api.get<{ faqs: FaqItem[] }>('/content/faqs');
+      setFaqs(res.faqs || []);
+    } catch (err) {
+      console.error('Failed to load FAQs:', err);
+    } finally {
+      setLoading(false);
     }
-    loadFaqs();
   }, []);
+
+  useEffect(() => {
+    loadFaqs();
+
+    const handleFocus = () => {
+      loadFaqs();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadFaqs]);
 
   if (section && !section.is_visible) return null;
 

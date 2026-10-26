@@ -23,23 +23,27 @@ const tursoClient = createClient({
   authToken: TURSO_TOKEN
 });
 
+function sanitizeArgs(args) {
+  return args.flat().map(val => (val === undefined ? null : val));
+}
+
 // Database interface compatible with both Turso Cloud and serverless runtimes
 const db = {
   prepare(sql) {
     return {
       async all(...args) {
-        const flatArgs = args.flat();
-        const res = await tursoClient.execute({ sql, args: flatArgs });
+        const cleanArgs = sanitizeArgs(args);
+        const res = await tursoClient.execute({ sql, args: cleanArgs });
         return res.rows;
       },
       async get(...args) {
-        const flatArgs = args.flat();
-        const res = await tursoClient.execute({ sql, args: flatArgs });
+        const cleanArgs = sanitizeArgs(args);
+        const res = await tursoClient.execute({ sql, args: cleanArgs });
         return res.rows[0] || null;
       },
       async run(...args) {
-        const flatArgs = args.flat();
-        const res = await tursoClient.execute({ sql, args: flatArgs });
+        const cleanArgs = sanitizeArgs(args);
+        const res = await tursoClient.execute({ sql, args: cleanArgs });
         return {
           changes: res.rowsAffected,
           lastInsertRowid: res.lastInsertRowid !== undefined ? Number(res.lastInsertRowid) : 0

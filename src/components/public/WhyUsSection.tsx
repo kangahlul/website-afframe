@@ -22,19 +22,26 @@ export const WhyUsSection: React.FC<WhyUsSectionProps> = ({ section }) => {
   const [benefits, setBenefits] = useState<BenefitItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadBenefits() {
-      try {
-        const res = await api.get<{ benefits: BenefitItem[] }>('/content/benefits');
-        setBenefits(res.benefits || []);
-      } catch (err) {
-        console.error('Failed to load benefits:', err);
-      } finally {
-        setLoading(false);
-      }
+  const loadBenefits = React.useCallback(async () => {
+    try {
+      const res = await api.get<{ benefits: BenefitItem[] }>('/content/benefits');
+      setBenefits(res.benefits || []);
+    } catch (err) {
+      console.error('Failed to load benefits:', err);
+    } finally {
+      setLoading(false);
     }
-    loadBenefits();
   }, []);
+
+  useEffect(() => {
+    loadBenefits();
+
+    const handleFocus = () => {
+      loadBenefits();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadBenefits]);
 
   if (section && !section.is_visible) return null;
 

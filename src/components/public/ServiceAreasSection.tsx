@@ -11,19 +11,26 @@ export const ServiceAreasSection: React.FC<ServiceAreasSectionProps> = ({ sectio
   const [areas, setAreas] = useState<ServiceArea[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadAreas() {
-      try {
-        const res = await api.get<{ areas: ServiceArea[] }>('/content/service-areas');
-        setAreas(res.areas || []);
-      } catch (err) {
-        console.error('Failed to load service areas:', err);
-      } finally {
-        setLoading(false);
-      }
+  const loadAreas = React.useCallback(async () => {
+    try {
+      const res = await api.get<{ areas: ServiceArea[] }>('/content/service-areas');
+      setAreas(res.areas || []);
+    } catch (err) {
+      console.error('Failed to load service areas:', err);
+    } finally {
+      setLoading(false);
     }
-    loadAreas();
   }, []);
+
+  useEffect(() => {
+    loadAreas();
+
+    const handleFocus = () => {
+      loadAreas();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadAreas]);
 
   if (section && !section.is_visible) return null;
 
