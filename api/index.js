@@ -12,18 +12,40 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', brand: 'AF Frame', platform: 'Vercel Serverless', time: new Date().toISOString() });
 });
 
-try {
-  app.use('/api/auth', require('../server/routes/auth'));
-  app.use('/api/media', require('../server/routes/media'));
-  app.use('/api/settings', require('../server/routes/settings'));
-  app.use('/api/sections', require('../server/routes/sections'));
-  app.use('/api/portfolio', require('../server/routes/portfolio'));
-  app.use('/api/services', require('../server/routes/services'));
-  app.use('/api/inquiries', require('../server/routes/inquiries'));
-  app.use('/api/content', require('../server/routes/content'));
-  app.use('/api/dashboard', require('../server/routes/dashboard'));
-} catch (err) {
-  console.error('[Route Load Error]', err);
+// Debug endpoint to reveal any loading issue on Vercel
+app.get('/api/debug-routes', (req, res) => {
+  const status = {};
+  const routes = ['auth', 'media', 'settings', 'sections', 'portfolio', 'services', 'inquiries', 'content', 'dashboard'];
+  for (const r of routes) {
+    try {
+      require(`../server/routes/${r}`);
+      status[r] = 'OK';
+    } catch (e) {
+      status[r] = e.message + ' | ' + (e.stack || '');
+    }
+  }
+  res.json(status);
+});
+
+// Mount routes individually so one failing doesn't stop others
+const routeList = [
+  ['/api/auth', './../server/routes/auth'],
+  ['/api/media', './../server/routes/media'],
+  ['/api/settings', './../server/routes/settings'],
+  ['/api/sections', './../server/routes/sections'],
+  ['/api/portfolio', './../server/routes/portfolio'],
+  ['/api/services', './../server/routes/services'],
+  ['/api/inquiries', './../server/routes/inquiries'],
+  ['/api/content', './../server/routes/content'],
+  ['/api/dashboard', './../server/routes/dashboard']
+];
+
+for (const [prefix, path] of routeList) {
+  try {
+    app.use(prefix, require(path));
+  } catch (err) {
+    console.error(`[Route Error: ${prefix}]`, err);
+  }
 }
 
 // Global error handler
