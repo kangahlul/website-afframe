@@ -5,6 +5,7 @@ import { Footer } from '../../components/public/Footer';
 import { ArrowLeft, Calendar, MapPin, User, Eye, Play, ArrowUpRight, X } from 'lucide-react';
 import { PortfolioProject } from '../../types';
 import { api } from '../../lib/api';
+import { getVideoEmbedUrl, normalizeMediaUrl } from '../../lib/mediaUtils';
 
 export const ProjectDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -111,7 +112,7 @@ export const ProjectDetailPage: React.FC = () => {
             {/* Cover Image */}
             <div className="aspect-[16/10] sm:aspect-[16/9] w-full rounded-sm overflow-hidden bg-black mb-12 border border-[#24242A] shadow-2xl">
               <img
-                src={project.cover_image_url}
+                src={normalizeMediaUrl(project.cover_image_url)}
                 alt={project.title}
                 className="w-full h-full object-cover cursor-pointer hover:scale-102 transition-transform duration-500"
                 onClick={() => setLightboxImage(project.cover_image_url)}
@@ -133,13 +134,9 @@ export const ProjectDetailPage: React.FC = () => {
               <div className="mb-16">
                 <h3 className="font-serif text-2xl text-[#F8F6F0] mb-4">Cinematic Video Showcase</h3>
                 <div className="aspect-video w-full rounded-sm overflow-hidden bg-black border border-zinc-800">
-                  {project.featured_video_url.includes('youtube') || project.featured_video_url.includes('youtu.be') ? (
+                  {getVideoEmbedUrl(project.featured_video_url) ? (
                     <iframe
-                      src={
-                        project.featured_video_url.includes('embed')
-                          ? project.featured_video_url
-                          : `https://www.youtube.com/embed/${project.featured_video_url.split('v=')[1] || project.featured_video_url.split('/').pop()}`
-                      }
+                      src={getVideoEmbedUrl(project.featured_video_url)!}
                       title="Project Video"
                       className="w-full h-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -166,7 +163,7 @@ export const ProjectDetailPage: React.FC = () => {
                       onClick={() => setLightboxImage(img.image_url)}
                     >
                       <img
-                        src={img.image_url}
+                        src={normalizeMediaUrl(img.image_url)}
                         alt={img.alt_text || project.title}
                         loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -212,7 +209,7 @@ export const ProjectDetailPage: React.FC = () => {
                     >
                       <div className="aspect-[4/3] overflow-hidden bg-black">
                         <img
-                          src={rel.cover_image_url}
+                          src={normalizeMediaUrl(rel.cover_image_url)}
                           alt={rel.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
@@ -248,7 +245,7 @@ export const ProjectDetailPage: React.FC = () => {
             <X className="w-7 h-7" />
           </button>
           <img
-            src={lightboxImage}
+            src={normalizeMediaUrl(lightboxImage)}
             alt="Preview"
             className="max-w-full max-h-[90vh] object-contain rounded-sm"
             onClick={e => e.stopPropagation()}

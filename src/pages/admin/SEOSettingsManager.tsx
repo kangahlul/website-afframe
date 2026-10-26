@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Check, Globe, Share2, Upload } from 'lucide-react';
+import { Search, Check, Globe, Share2, Upload, Trash2 } from 'lucide-react';
 import { useSite } from '../../context/SiteContext';
 import { api } from '../../lib/api';
+import { normalizeMediaUrl } from '../../lib/mediaUtils';
 
 export const SEOSettingsManager: React.FC = () => {
   const { settings, updateSettings, refreshSiteData } = useSite();
@@ -144,19 +145,40 @@ export const SEOSettingsManager: React.FC = () => {
               <input
                 type="text"
                 value={form.og_image}
-                onChange={e => handleChange('og_image', e.target.value)}
+                onChange={e => handleChange('og_image', normalizeMediaUrl(e.target.value))}
                 placeholder="URL Gambar Beresolusi Tinggi"
-                className="flex-1 px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
+                className="flex-1 px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200 font-mono text-xs"
               />
-              <label className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer shrink-0">
+              <label className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer shrink-0 flex items-center gap-1.5 transition-colors">
                 <Upload className="w-4 h-4" />
+                <span>Unggah</span>
                 <input type="file" accept="image/*" onChange={handleUploadOg} className="hidden" />
               </label>
+              {form.og_image && (
+                <button
+                  type="button"
+                  onClick={() => handleChange('og_image', '')}
+                  className="px-3 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 rounded transition-colors"
+                  title="Hapus Gambar OG"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
             {form.og_image && (
-              <div className="aspect-[1.91/1] w-72 bg-black rounded overflow-hidden border border-zinc-800">
+              <div className="relative aspect-[1.91/1] w-72 bg-black rounded overflow-hidden border border-zinc-800 group mt-2">
                 <img src={form.og_image} alt="OG Card" className="w-full h-full object-cover" />
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={() => handleChange('og_image', '')}
+                    className="p-1 bg-black/80 text-red-400 hover:text-red-300 rounded-full"
+                    title="Hapus"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             )}
           </div>

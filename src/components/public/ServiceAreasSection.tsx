@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, ArrowUpRight } from 'lucide-react';
 import { ServiceArea, WebsiteSection } from '../../types';
 import { api } from '../../lib/api';
+import { normalizeMediaUrl } from '../../lib/mediaUtils';
 
 interface ServiceAreasSectionProps {
   section?: WebsiteSection;
@@ -61,7 +62,7 @@ export const ServiceAreasSection: React.FC<ServiceAreasSectionProps> = ({ sectio
               {/* Image banner */}
               <div className="relative aspect-[16/10] overflow-hidden bg-zinc-900">
                 <img
-                  src={area.image_url || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=800&auto=format&fit=crop'}
+                  src={normalizeMediaUrl(area.image_url) || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=800&auto=format&fit=crop'}
                   alt={area.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Palette, Upload, Image, Check, RefreshCw } from 'lucide-react';
+import { Palette, Upload, Image, Check, RefreshCw, Trash2, Link2, ExternalLink } from 'lucide-react';
 import { useSite } from '../../context/SiteContext';
 import { api } from '../../lib/api';
+import { normalizeMediaUrl } from '../../lib/mediaUtils';
 
 export const BrandIdentityManager: React.FC = () => {
   const { settings, refreshSiteData, updateSettings } = useSite();
@@ -111,27 +112,47 @@ export const BrandIdentityManager: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
             {/* Primary Logo */}
-            <div className="space-y-3 p-4 bg-[#18181D] border border-zinc-800 rounded">
-              <span className="font-semibold text-zinc-300 block">Logo Utama (Header & Brand)</span>
-              <div className="aspect-[3/1] bg-black/60 border border-dashed border-zinc-700 rounded flex items-center justify-center p-2 overflow-hidden">
-                {form.logo_primary || form.logo_light ? (
-                  <img src={form.logo_primary || form.logo_light} alt="Primary Logo" className="max-h-full max-w-full object-contain" />
-                ) : (
-                  <span className="text-[#C5A880] font-serif text-base tracking-wider">AF FRAME (Gold)</span>
-                )}
+            <div className="space-y-3 p-4 bg-[#18181D] border border-zinc-800 rounded flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-zinc-300 block">Logo Utama (Header & Brand)</span>
+                  {(form.logo_primary || form.logo_light) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleChange('logo_primary', '');
+                        handleChange('logo_light', '');
+                      }}
+                      className="text-red-400 hover:text-red-300 flex items-center gap-1 text-[11px]"
+                      title="Hapus Logo Utama (Kembali ke Teks Emas)"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Hapus</span>
+                    </button>
+                  )}
+                </div>
+                <div className="aspect-[3/1] bg-black/60 border border-dashed border-zinc-700 rounded flex items-center justify-center p-2 overflow-hidden mb-3">
+                  {form.logo_primary || form.logo_light ? (
+                    <img src={normalizeMediaUrl(form.logo_primary || form.logo_light)} alt="Primary Logo" className="max-h-full max-w-full object-contain" />
+                  ) : (
+                    <span className="text-[#C5A880] font-serif text-base tracking-wider">AF FRAME (Teks Gold)</span>
+                  )}
+                </div>
+                <label className="text-zinc-400 block mb-1 font-mono text-[11px]">Tautan / URL Logo:</label>
+                <input
+                  type="text"
+                  placeholder="https://... atau paste link gambar"
+                  value={form.logo_primary || form.logo_light}
+                  onChange={e => {
+                    const norm = normalizeMediaUrl(e.target.value);
+                    handleChange('logo_primary', norm);
+                    handleChange('logo_light', norm);
+                  }}
+                  className="w-full px-2.5 py-1.5 bg-[#121215] border border-zinc-700 rounded text-zinc-200 text-xs mb-2"
+                />
               </div>
-              <input
-                type="text"
-                placeholder="URL Logo atau unggah berkas"
-                value={form.logo_primary || form.logo_light}
-                onChange={e => {
-                  handleChange('logo_primary', e.target.value);
-                  handleChange('logo_light', e.target.value);
-                }}
-                className="w-full px-2.5 py-1.5 bg-[#121215] border border-zinc-700 rounded text-zinc-200 text-xs"
-              />
-              <label className="block text-center py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer transition-colors">
-                <span>Pilih Berkas Logo</span>
+              <label className="block text-center py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer transition-colors font-medium">
+                <span>📁 Unggah Berkas Logo Baru</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -154,47 +175,79 @@ export const BrandIdentityManager: React.FC = () => {
             </div>
 
             {/* Monogram / Compact Logo */}
-            <div className="space-y-3 p-4 bg-[#18181D] border border-zinc-800 rounded">
-              <span className="font-semibold text-zinc-300 block">Monogram / Compact Mark</span>
-              <div className="aspect-[3/1] bg-black/60 border border-dashed border-zinc-700 rounded flex items-center justify-center p-2 overflow-hidden">
-                {form.logo_monogram ? (
-                  <img src={form.logo_monogram} alt="Monogram" className="max-h-full max-w-full object-contain" />
-                ) : (
-                  <div className="w-10 h-10 border border-[#C5A880] flex items-center justify-center font-serif text-lg font-bold text-[#F8F6F0]">AF</div>
-                )}
+            <div className="space-y-3 p-4 bg-[#18181D] border border-zinc-800 rounded flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-zinc-300 block">Monogram / Compact Mark</span>
+                  {form.logo_monogram && (
+                    <button
+                      type="button"
+                      onClick={() => handleChange('logo_monogram', '')}
+                      className="text-red-400 hover:text-red-300 flex items-center gap-1 text-[11px]"
+                      title="Hapus Monogram (Kembali ke Kotak AF)"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Hapus</span>
+                    </button>
+                  )}
+                </div>
+                <div className="aspect-[3/1] bg-black/60 border border-dashed border-zinc-700 rounded flex items-center justify-center p-2 overflow-hidden mb-3">
+                  {form.logo_monogram ? (
+                    <img src={normalizeMediaUrl(form.logo_monogram)} alt="Monogram" className="max-h-full max-w-full object-contain" />
+                  ) : (
+                    <div className="w-10 h-10 border border-[#C5A880] flex items-center justify-center font-serif text-lg font-bold text-[#F8F6F0]">AF</div>
+                  )}
+                </div>
+                <label className="text-zinc-400 block mb-1 font-mono text-[11px]">Tautan / URL Monogram:</label>
+                <input
+                  type="text"
+                  placeholder="https://... atau paste link"
+                  value={form.logo_monogram}
+                  onChange={e => handleChange('logo_monogram', normalizeMediaUrl(e.target.value))}
+                  className="w-full px-2.5 py-1.5 bg-[#121215] border border-zinc-700 rounded text-zinc-200 text-xs mb-2"
+                />
               </div>
-              <input
-                type="text"
-                placeholder="URL Monogram"
-                value={form.logo_monogram}
-                onChange={e => handleChange('logo_monogram', e.target.value)}
-                className="w-full px-2.5 py-1.5 bg-[#121215] border border-zinc-700 rounded text-zinc-200 text-xs"
-              />
-              <label className="block text-center py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer transition-colors">
-                <span>Pilih Berkas Monogram</span>
+              <label className="block text-center py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer transition-colors font-medium">
+                <span>📁 Unggah Berkas Monogram</span>
                 <input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logo_monogram')} className="hidden" />
               </label>
             </div>
 
             {/* Favicon & OG Image */}
-            <div className="space-y-3 p-4 bg-[#18181D] border border-zinc-800 rounded">
-              <span className="font-semibold text-zinc-300 block">Favicon & Social Share (OG)</span>
-              <div className="aspect-[3/1] bg-black/60 border border-dashed border-zinc-700 rounded flex items-center justify-center p-2 overflow-hidden">
-                {form.og_image ? (
-                  <img src={form.og_image} alt="OG Image" className="max-h-full max-w-full object-cover" />
-                ) : (
-                  <span className="text-zinc-600 text-xs">Preview Social Card</span>
-                )}
+            <div className="space-y-3 p-4 bg-[#18181D] border border-zinc-800 rounded flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-zinc-300 block">Social Share Card (OG Image)</span>
+                  {form.og_image && (
+                    <button
+                      type="button"
+                      onClick={() => handleChange('og_image', '')}
+                      className="text-red-400 hover:text-red-300 flex items-center gap-1 text-[11px]"
+                      title="Hapus OG Image"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Hapus</span>
+                    </button>
+                  )}
+                </div>
+                <div className="aspect-[3/1] bg-black/60 border border-dashed border-zinc-700 rounded flex items-center justify-center p-2 overflow-hidden mb-3">
+                  {form.og_image ? (
+                    <img src={normalizeMediaUrl(form.og_image)} alt="OG Image" className="max-h-full max-w-full object-cover" />
+                  ) : (
+                    <span className="text-zinc-600 text-xs">Preview Social Card</span>
+                  )}
+                </div>
+                <label className="text-zinc-400 block mb-1 font-mono text-[11px]">Tautan / URL Gambar OG:</label>
+                <input
+                  type="text"
+                  placeholder="https://... atau paste link"
+                  value={form.og_image}
+                  onChange={e => handleChange('og_image', normalizeMediaUrl(e.target.value))}
+                  className="w-full px-2.5 py-1.5 bg-[#121215] border border-zinc-700 rounded text-zinc-200 text-xs mb-2"
+                />
               </div>
-              <input
-                type="text"
-                placeholder="URL OG Image"
-                value={form.og_image}
-                onChange={e => handleChange('og_image', e.target.value)}
-                className="w-full px-2.5 py-1.5 bg-[#121215] border border-zinc-700 rounded text-zinc-200 text-xs"
-              />
-              <label className="block text-center py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer transition-colors">
-                <span>Pilih Berkas Gambar OG</span>
+              <label className="block text-center py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer transition-colors font-medium">
+                <span>📁 Unggah Berkas Gambar OG</span>
                 <input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'og_image')} className="hidden" />
               </label>
             </div>

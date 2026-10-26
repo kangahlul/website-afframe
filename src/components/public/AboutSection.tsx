@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowUpRight, CheckCircle, ShieldCheck } from 'lucide-react';
 import { WebsiteSection } from '../../types';
+import { normalizeMediaUrl } from '../../lib/mediaUtils';
 
 interface AboutSectionProps {
   section?: WebsiteSection;
@@ -15,9 +16,10 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ section }) => {
     section?.description ||
     'AF Frame adalah layanan content creator dan dokumentasi moment yang berfokus pada mengabadikan momen spesial dalam bentuk foto, video cinematic, dan konten media sosial. Dari perayaan personal hingga kebutuhan dokumentasi perusahaan, setiap karya menjadi bagian dari cerita yang layak dikenang.';
 
-  const bgUrl =
+  const rawBgUrl =
     section?.background_media_url ||
     'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200&auto=format&fit=crop';
+  const bgUrl = normalizeMediaUrl(rawBgUrl);
 
   return (
     <section id="about" className="pt-14 pb-20 bg-[#09090A] relative border-t border-[#24242A]/60 overflow-hidden scroll-mt-14">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowDown, ArrowUpRight, Play, Sparkles } from 'lucide-react';
 import { WebsiteSection } from '../../types';
+import { normalizeMediaUrl, getVideoEmbedUrl } from '../../lib/mediaUtils';
 
 interface HeroSectionProps {
   section?: WebsiteSection;
@@ -35,21 +36,32 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ section }) => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 pb-16">
       {/* Background Media */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 overflow-hidden">
         {bgType === 'video' && bgUrl ? (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-            poster="https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2070&auto=format&fit=crop"
-          >
-            <source src={bgUrl} type="video/mp4" />
-          </video>
+          getVideoEmbedUrl(bgUrl) ? (
+            <div className="w-full h-full pointer-events-none scale-125">
+              <iframe
+                src={`${getVideoEmbedUrl(bgUrl)}&controls=0&mute=1&loop=1&playlist=${getVideoEmbedUrl(bgUrl)?.split('/embed/')[1]?.split('?')[0] || ''}`}
+                title="Hero Background Video"
+                className="w-full h-full object-cover"
+                allow="autoplay; encrypted-media"
+              />
+            </div>
+          ) : (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+              poster="https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2070&auto=format&fit=crop"
+            >
+              <source src={bgUrl} type="video/mp4" />
+            </video>
+          )
         ) : (
           <img
-            src={bgUrl}
+            src={normalizeMediaUrl(bgUrl)}
             alt="AF Frame Background"
             className="w-full h-full object-cover transform scale-105 motion-safe:animate-pulse-slow"
             style={{ objectPosition: section?.focal_point || 'center' }}

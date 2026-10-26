@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight, Play, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PortfolioProject, PortfolioCategory, WebsiteSection } from '../../types';
 import { api } from '../../lib/api';
+import { getVideoEmbedUrl, normalizeMediaUrl } from '../../lib/mediaUtils';
 
 interface SelectedWorksSectionProps {
   section?: WebsiteSection;
@@ -128,7 +129,7 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                 {/* Image Cover Container */}
                 <div className="relative aspect-[4/5] overflow-hidden bg-black">
                   <img
-                    src={project.cover_image_url}
+                    src={normalizeMediaUrl(project.cover_image_url)}
                     alt={project.title}
                     loading="lazy"
                     className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
@@ -211,7 +212,7 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
             <X className="w-7 h-7" />
           </button>
           <img
-            src={lightboxImage}
+            src={normalizeMediaUrl(lightboxImage)}
             alt="Preview"
             className="max-w-full max-h-[90vh] object-contain rounded-sm"
             onClick={e => e.stopPropagation()}
@@ -235,13 +236,9 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
             className="w-full max-w-4xl aspect-video bg-black rounded overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            {activeVideoUrl.includes('youtube') || activeVideoUrl.includes('youtu.be') ? (
+            {getVideoEmbedUrl(activeVideoUrl) ? (
               <iframe
-                src={
-                  activeVideoUrl.includes('embed')
-                    ? activeVideoUrl
-                    : `https://www.youtube.com/embed/${activeVideoUrl.split('v=')[1] || activeVideoUrl.split('/').pop()}`
-                }
+                src={getVideoEmbedUrl(activeVideoUrl)!}
                 title="AF Frame Video"
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   Layers, Eye, EyeOff, ArrowUp, ArrowDown, Edit3, Trash2,
-  Check, Image, Plus, Sparkles, X, AlertTriangle
+  Check, Image, Plus, Sparkles, X, AlertTriangle, Upload, Film, Link2
 } from 'lucide-react';
 import { WebsiteSection } from '../../types';
 import { api } from '../../lib/api';
 import { useSite } from '../../context/SiteContext';
+import { normalizeMediaUrl, isVideoUrl, getVideoEmbedUrl } from '../../lib/mediaUtils';
 
 export const WebsiteSectionManager: React.FC = () => {
   const { refreshSiteData } = useSite();
@@ -28,6 +29,29 @@ export const WebsiteSectionManager: React.FC = () => {
   const [formOverlay, setFormOverlay] = useState(65);
   const [formAlignment, setFormAlignment] = useState<'left' | 'center' | 'right'>('center');
   const [isSavingSection, setIsSavingSection] = useState(false);
+  const [uploadingBg, setUploadingBg] = useState(false);
+
+  const handleUploadBg = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingBg(true);
+      const res = await api.uploadFiles([file], 'backgrounds');
+      if (res.assets && res.assets[0]) {
+        const url = res.assets[0].url;
+        setFormBgUrl(url);
+        if (url.startsWith('data:video/') || isVideoUrl(url)) {
+          setFormBgType('video');
+        } else {
+          setFormBgType('image');
+        }
+      }
+    } catch (err: any) {
+      alert(err.message || 'Gagal mengunggah media latar');
+    } finally {
+      setUploadingBg(false);
+    }
+  };
 
   // Add custom section modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -387,14 +411,40 @@ export const WebsiteSectionManager: React.FC = () => {
               <div className="pt-2 border-t border-zinc-800/80 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="sm:col-span-2">
-                    <label className="text-zinc-400 block mb-1">URL Background Media (Foto / Video)</label>
-                    <input
-                      type="text"
-                      placeholder="https://images.unsplash.com/... atau /uploads/..."
-                      value={formBgUrl}
-                      onChange={e => setFormBgUrl(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
-                    />
+                    <label className="text-zinc-400 block mb-1">URL / File Background Media (Foto / Video)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="https://... atau YouTube/Vimeo link"
+                        value={formBgUrl}
+                        onChange={e => {
+                          const normalized = normalizeMediaUrl(e.target.value);
+                          setFormBgUrl(normalized);
+                          if (isVideoUrl(normalized)) {
+                            setFormBgType('video');
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200 font-mono text-xs"
+                      />
+                      <label className={`px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer shrink-0 flex items-center gap-1.5 transition-colors ${uploadingBg ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{uploadingBg ? '...' : 'Unggah'}</span>
+                        <input type="file" accept="image/*,video/mp4" onChange={handleUploadBg} className="hidden" />
+                      </label>
+                      {formBgUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormBgUrl('');
+                            setFormBgType('none');
+                          }}
+                          className="px-2.5 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 rounded transition-colors text-xs"
+                          title="Hapus Media"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="text-zinc-400 block mb-1">Tipe Media</label>
@@ -404,11 +454,38 @@ export const WebsiteSectionManager: React.FC = () => {
                       className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
                     >
                       <option value="image">Gambar (Foto)</option>
-                      <option value="video">Video (MP4)</option>
+                      <option value="video">Video (MP4 / Embed)</option>
                       <option value="none">Tanpa Media (Warna Solid)</option>
                     </select>
                   </div>
                 </div>
+
+                {/* Live Media Preview if URL present */}
+                {formBgUrl && formBgType !== 'none' && (
+                  <div className="relative aspect-video max-h-48 rounded bg-black border border-zinc-800 overflow-hidden">
+                    {formBgType === 'video' || isVideoUrl(formBgUrl) ? (
+                      getVideoEmbedUrl(formBgUrl) ? (
+                        <iframe
+                          src={getVideoEmbedUrl(formBgUrl)!}
+                          title="Section Background Preview"
+                          className="w-full h-full pointer-events-none"
+                        />
+                      ) : (
+                        <video src={formBgUrl} controls className="w-full h-full object-cover" />
+                      )
+                    ) : (
+                      <img src={formBgUrl} alt="Background Preview" className="w-full h-full object-cover" />
+                    )}
+                    {/* Overlay preview indicator */}
+                    <div
+                      className="absolute inset-0 bg-black pointer-events-none transition-opacity"
+                      style={{ opacity: formOverlay / 100 }}
+                    />
+                    <div className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-black/80 backdrop-blur rounded text-[10px] text-zinc-300 font-mono">
+                      Pratinjau dengan Overlay {formOverlay}%
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>

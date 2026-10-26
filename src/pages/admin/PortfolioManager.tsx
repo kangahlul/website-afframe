@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { PortfolioProject, PortfolioCategory } from '../../types';
 import { api } from '../../lib/api';
+import { normalizeMediaUrl, getVideoEmbedUrl, isVideoUrl } from '../../lib/mediaUtils';
 
 export const PortfolioManager: React.FC = () => {
   const [projects, setProjects] = useState<PortfolioProject[]>([]);
@@ -122,7 +123,12 @@ export const PortfolioManager: React.FC = () => {
 
   const addGalleryUrl = () => {
     if (newGalleryInput.trim()) {
-      setGalleryImages(prev => [...prev, newGalleryInput.trim()]);
+      // Support comma or newline separated URLs
+      const urls = newGalleryInput
+        .split(/[\n,]+/)
+        .map(u => normalizeMediaUrl(u.trim()))
+        .filter(Boolean);
+      setGalleryImages(prev => [...prev, ...urls]);
       setNewGalleryInput('');
     }
   };
@@ -481,37 +487,77 @@ export const PortfolioManager: React.FC = () => {
               {/* Row 5: Cover Image & Featured Video URL */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-zinc-800">
                 <div className="space-y-2">
-                  <label className="text-[#C5A880] block font-semibold">Foto Kover Utama</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[#C5A880] block font-semibold">Foto Kover Utama</label>
+                    {coverUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCoverUrl('')}
+                        className="text-red-400 hover:text-red-300 text-[11px] flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="URL Gambar atau unggah"
+                      placeholder="URL Gambar atau unggah berkas"
                       value={coverUrl}
-                      onChange={e => setCoverUrl(e.target.value)}
+                      onChange={e => setCoverUrl(normalizeMediaUrl(e.target.value))}
                       className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
                     />
-                    <label className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer shrink-0">
+                    <label className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer shrink-0" title="Unggah Berkas">
                       <Upload className="w-4 h-4" />
                       <input type="file" accept="image/*" onChange={handleUploadCover} className="hidden" />
                     </label>
                   </div>
                   {coverUrl && (
-                    <div className="aspect-[16/9] w-32 bg-black rounded overflow-hidden border border-zinc-800">
-                      <img src={coverUrl} alt="Cover preview" className="w-full h-full object-cover" />
+                    <div className="aspect-[16/9] w-40 bg-black rounded overflow-hidden border border-zinc-800 shadow-sm">
+                      <img src={normalizeMediaUrl(coverUrl)} alt="Cover preview" className="w-full h-full object-cover" />
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-zinc-400 block font-semibold">URL Video Showcase (Opsional)</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-zinc-400 block font-semibold">URL Video Showcase (Opsional)</label>
+                    {videoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setVideoUrl('')}
+                        className="text-red-400 hover:text-red-300 text-[11px] flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="url"
-                    placeholder="https://www.youtube.com/watch?v=..."
+                    placeholder="https://www.youtube.com/watch?v=... atau https://vimeo.com/..."
                     value={videoUrl}
                     onChange={e => setVideoUrl(e.target.value)}
                     className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
                   />
                   <p className="text-[10px] text-zinc-500">Mendukung tautan YouTube, Vimeo, atau berkas MP4 langsung.</p>
+                  
+                  {/* Live Video Preview */}
+                  {videoUrl.trim() && (
+                    <div className="aspect-video w-48 bg-black rounded overflow-hidden border border-zinc-800 mt-2">
+                      {getVideoEmbedUrl(videoUrl) ? (
+                        <iframe
+                          src={getVideoEmbedUrl(videoUrl)!}
+                          title="Video Preview"
+                          className="w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        />
+                      ) : (
+                        <video src={videoUrl} controls className="w-full h-full object-contain" />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

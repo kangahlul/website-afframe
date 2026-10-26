@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Edit3, Trash2, Eye, EyeOff, Upload, Check, X } from 'lucide-react';
+import { MapPin, Plus, Edit3, Trash2, Eye, EyeOff, Upload, Check, X, Image as ImageIcon } from 'lucide-react';
 import { ServiceArea } from '../../types';
 import { api } from '../../lib/api';
+import { normalizeMediaUrl } from '../../lib/mediaUtils';
 
 export const ServiceAreasManager: React.FC = () => {
   const [areas, setAreas] = useState<ServiceArea[]>([]);
@@ -234,20 +235,46 @@ export const ServiceAreasManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-zinc-400 block mb-1">URL Foto Lanskap</label>
-                <div className="flex gap-2">
+                <label className="text-zinc-400 block mb-1">URL / File Foto Lanskap</label>
+                <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={imageUrl}
-                    onChange={e => setImageUrl(e.target.value)}
+                    onChange={e => setImageUrl(normalizeMediaUrl(e.target.value))}
                     placeholder="URL Foto..."
-                    className="flex-1 px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
+                    className="flex-1 px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200 font-mono text-xs"
                   />
-                  <label className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer shrink-0">
+                  <label className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer shrink-0 flex items-center gap-1.5 transition-colors">
                     <Upload className="w-4 h-4" />
+                    <span>Unggah</span>
                     <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
                   </label>
+                  {imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('')}
+                      className="px-2.5 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 rounded transition-colors"
+                      title="Hapus Foto"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
+                {imageUrl && (
+                  <div className="relative aspect-[16/9] w-full rounded bg-black border border-zinc-800 overflow-hidden group">
+                    <img src={imageUrl} alt="Pratinjau Area" className="w-full h-full object-cover" />
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={() => setImageUrl('')}
+                        className="p-1 bg-black/80 text-red-400 hover:text-red-300 rounded-full"
+                        title="Hapus"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2 pt-1">

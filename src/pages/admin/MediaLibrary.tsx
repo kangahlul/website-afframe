@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Upload, Search, Filter, Trash2, Edit3, Copy, Check, Eye, AlertTriangle, Plus, X, Film, ImageIcon
+  Upload, Search, Filter, Trash2, Edit3, Copy, Check, Eye, AlertTriangle, Plus, X, Film, ImageIcon, Link2, ExternalLink
 } from 'lucide-react';
 import { MediaAsset } from '../../types';
 import { api } from '../../lib/api';
+import { normalizeMediaUrl, getVideoEmbedUrl, isVideoUrl } from '../../lib/mediaUtils';
 
 export const MediaLibrary: React.FC = () => {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
@@ -18,13 +19,17 @@ export const MediaLibrary: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // External video modal
+  // External media link modal (Images & Videos)
   const [showExternalModal, setShowExternalModal] = useState(false);
   const [extUrl, setExtUrl] = useState('');
   const [extTitle, setExtTitle] = useState('');
+  const [extCategory, setExtCategory] = useState('portfolio');
+  const [extAlt, setExtAlt] = useState('');
+  const [extDesc, setExtDesc] = useState('');
 
   // Edit / Preview asset modal
   const [selectedAsset, setSelectedAsset] = useState<MediaAsset | null>(null);
+  const [editUrl, setEditUrl] = useState('');
   const [editAltText, setEditAltText] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editCategory, setEditCategory] = useState('');
@@ -84,17 +89,22 @@ export const MediaLibrary: React.FC = () => {
 
   const handleAddExternal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!extUrl) return;
+    if (!extUrl.trim()) return;
 
     try {
+      const cleanUrl = normalizeMediaUrl(extUrl.trim());
       await api.post('/media/external', {
-        url: extUrl,
-        title: extTitle || 'External Video Asset',
-        category: 'video'
+        url: cleanUrl,
+        title: extTitle.trim() || 'Media Eksternal',
+        category: extCategory,
+        alt_text: extAlt.trim(),
+        description: extDesc.trim()
       });
       setShowExternalModal(false);
       setExtUrl('');
       setExtTitle('');
+      setExtAlt('');
+      setExtDesc('');
       fetchAssets();
     } catch (err: any) {
       alert(err.message || 'Gagal menambahkan tautan media.');
@@ -103,6 +113,7 @@ export const MediaLibrary: React.FC = () => {
 
   const openEditModal = (asset: MediaAsset) => {
     setSelectedAsset(asset);
+    setEditUrl(asset.url || '');
     setEditAltText(asset.alt_text || '');
     setEditDescription(asset.description || '');
     setEditCategory(asset.category || 'general');
@@ -114,6 +125,7 @@ export const MediaLibrary: React.FC = () => {
     try {
       setIsSavingEdit(true);
       await api.put(`/media/${selectedAsset.id}`, {
+        url: editUrl.trim(),
         alt_text: editAltText,
         description: editDescription,
         category: editCategory,
@@ -217,10 +229,10 @@ export const MediaLibrary: React.FC = () => {
 
           <button
             onClick={() => setShowExternalModal(true)}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-[#1A1A20] hover:bg-[#25252D] text-zinc-300 border border-zinc-700 rounded-sm text-xs uppercase tracking-wider transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2 bg-[#1A1A20] hover:bg-[#25252D] text-zinc-300 border border-zinc-700 hover:border-[#C5A880] rounded-sm text-xs uppercase tracking-wider transition-colors cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Link Video Luar</span>
+            <Link2 className="w-3.5 h-3.5 text-[#C5A880]" />
+            <span>Tambah Media via Link</span>
           </button>
         </div>
       </div>
@@ -423,6 +435,28 @@ export const MediaLibrary: React.FC = () => {
                     </select>
                   </div>
 
+                  <div>
+                    <label className="text-zinc-400 block mb-1">URL Media (Link atau Data URI)</label>
+                    <input
+                      type="text"
+                      value={editUrl}
+                      onChange={e => setEditUrl(e.target.value)}
+                      placeholder="https://... atau data:image/..."
+                      className="w-full px-3 py-1.5 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-zinc-400 block mb-1">Deskripsi Tambahan</label>
+                    <input
+                      type="text"
+                      value={editDescription}
+                      onChange={e => setEditDescription(e.target.value)}
+                      placeholder="Catatan internal media..."
+                      className="w-full px-3 py-1.5 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
+                    />
+                  </div>
+
                   <div className="pt-2 text-[10px] text-zinc-500 space-y-0.5 border-t border-zinc-800">
                     <p>URL: <span className="text-zinc-400 break-all">{selectedAsset.url}</span></p>
                     <p>Ukuran: {formatFileSize(selectedAsset.file_size)}</p>
@@ -453,18 +487,21 @@ export const MediaLibrary: React.FC = () => {
         </div>
       )}
 
-      {/* External Video Modal */}
+      {/* Tambah Media via Link Modal */}
       {showExternalModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto"
           onClick={() => setShowExternalModal(false)}
         >
           <div
-            className="bg-[#141418] border border-zinc-800 max-w-md w-full rounded-sm p-6 space-y-4"
+            className="bg-[#141418] border border-zinc-800 max-w-lg w-full rounded-sm p-6 space-y-4 my-8 shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-              <h3 className="font-serif text-lg text-white">Tambah Media Eksternal</h3>
+              <div className="flex items-center gap-2">
+                <Link2 className="w-5 h-5 text-[#C5A880]" />
+                <h3 className="font-serif text-lg text-white">Tambah Media via Link</h3>
+              </div>
               <button onClick={() => setShowExternalModal(false)} className="text-zinc-500 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
@@ -472,25 +509,86 @@ export const MediaLibrary: React.FC = () => {
 
             <form onSubmit={handleAddExternal} className="space-y-4 text-xs">
               <div>
-                <label className="text-zinc-400 block mb-1">Judul Media</label>
-                <input
-                  type="text"
-                  required
-                  value={extTitle}
-                  onChange={e => setExtTitle(e.target.value)}
-                  placeholder="Contoh: Video Cinematic Wisuda UNAIR"
-                  className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
-                />
-              </div>
-
-              <div>
-                <label className="text-zinc-400 block mb-1">URL YouTube / Vimeo / Eksternal</label>
+                <label className="text-zinc-400 block mb-1 font-semibold">URL / Link Media *</label>
                 <input
                   type="url"
                   required
                   value={extUrl}
                   onChange={e => setExtUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
+                  placeholder="https://images.unsplash.com/... atau https://youtube.com/..."
+                  className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
+                />
+                <p className="text-[10px] text-zinc-500 mt-1">
+                  Mendukung link gambar langsung, Google Drive, Unsplash, YouTube, Vimeo, atau MP4.
+                </p>
+              </div>
+
+              {/* Instant Live Preview */}
+              {extUrl.trim() && (
+                <div className="p-3 bg-black/60 border border-zinc-800 rounded">
+                  <span className="text-[10px] text-zinc-400 block mb-2 font-mono uppercase tracking-wider">Preview Media:</span>
+                  <div className="aspect-video max-h-48 w-full bg-black rounded overflow-hidden flex items-center justify-center">
+                    {getVideoEmbedUrl(extUrl) ? (
+                      <iframe
+                        src={getVideoEmbedUrl(extUrl)!}
+                        title="Preview Video"
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      />
+                    ) : isVideoUrl(extUrl) ? (
+                      <video src={extUrl} controls className="w-full h-full object-contain" />
+                    ) : (
+                      <img
+                        src={normalizeMediaUrl(extUrl)}
+                        alt="Preview"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-zinc-400 block mb-1 font-semibold">Judul / Nama Media</label>
+                  <input
+                    type="text"
+                    required
+                    value={extTitle}
+                    onChange={e => setExtTitle(e.target.value)}
+                    placeholder="Contoh: Logo Emas AF Frame"
+                    className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-zinc-400 block mb-1 font-semibold">Kategori Media</label>
+                  <select
+                    value={extCategory}
+                    onChange={e => setExtCategory(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
+                  >
+                    <option value="brand">Brand & Logo</option>
+                    <option value="portfolio">Portofolio</option>
+                    <option value="hero">Hero Background</option>
+                    <option value="services">Layanan & Paket</option>
+                    <option value="backgrounds">Backgrounds</option>
+                    <option value="video">Video Showcase</option>
+                    <option value="general">Umum</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-zinc-400 block mb-1">Teks Alt (SEO & Aksesibilitas)</label>
+                <input
+                  type="text"
+                  value={extAlt}
+                  onChange={e => setExtAlt(e.target.value)}
+                  placeholder="Deskripsi singkat gambar..."
                   className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
                 />
               </div>

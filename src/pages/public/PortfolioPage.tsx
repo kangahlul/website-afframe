@@ -5,6 +5,7 @@ import { Footer } from '../../components/public/Footer';
 import { Search, Eye, Play, ArrowUpRight, X } from 'lucide-react';
 import { PortfolioProject, PortfolioCategory } from '../../types';
 import { api } from '../../lib/api';
+import { getVideoEmbedUrl, normalizeMediaUrl } from '../../lib/mediaUtils';
 
 export const PortfolioPage: React.FC = () => {
   const [projects, setProjects] = useState<PortfolioProject[]>([]);
@@ -145,7 +146,7 @@ export const PortfolioPage: React.FC = () => {
                   {/* Image Cover Container */}
                   <div className="relative aspect-[4/5] overflow-hidden bg-black">
                     <img
-                      src={project.cover_image_url}
+                      src={normalizeMediaUrl(project.cover_image_url)}
                       alt={project.title}
                       loading="lazy"
                       className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
@@ -230,7 +231,7 @@ export const PortfolioPage: React.FC = () => {
             <X className="w-7 h-7" />
           </button>
           <img
-            src={lightboxImage}
+            src={normalizeMediaUrl(lightboxImage)}
             alt="Preview"
             className="max-w-full max-h-[90vh] object-contain rounded-sm"
             onClick={e => e.stopPropagation()}
@@ -254,13 +255,9 @@ export const PortfolioPage: React.FC = () => {
             className="w-full max-w-4xl aspect-video bg-black rounded overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            {activeVideoUrl.includes('youtube') || activeVideoUrl.includes('youtu.be') ? (
+            {getVideoEmbedUrl(activeVideoUrl) ? (
               <iframe
-                src={
-                  activeVideoUrl.includes('embed')
-                    ? activeVideoUrl
-                    : `https://www.youtube.com/embed/${activeVideoUrl.split('v=')[1] || activeVideoUrl.split('/').pop()}`
-                }
+                src={getVideoEmbedUrl(activeVideoUrl)!}
                 title="AF Frame Video"
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
