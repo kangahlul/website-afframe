@@ -192,6 +192,8 @@ router.post('/external', authenticateToken, async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
 // PUT /api/media/:id (update alt text, title, category, and url)
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
