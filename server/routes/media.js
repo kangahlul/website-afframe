@@ -6,11 +6,14 @@ const fs = require('fs');
 const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
-const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  try {
+const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const uploadsDir = isVercel ? path.join('/tmp', 'uploads') : path.join(__dirname, '../uploads');
+try {
+  if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
-  } catch (e) {}
+  }
+} catch (e) {
+  console.warn('[Uploads Directory]', e.message);
 }
 
 const storage = multer.diskStorage({
