@@ -28,8 +28,8 @@ interface ServicesSectionProps {
 export const ServicesSection: React.FC<ServicesSectionProps> = ({ section, onSelectPackage }) => {
   const { settings } = useSite();
   const [services, setServices] = useState<Service[]>([]);
-  // Default to first service id so it's not overwhelming, with 'all' available as an option
-  const [selectedFilter, setSelectedFilter] = useState<'all' | number | null>('all');
+  // Default to first service id so it's clean and not showing all at once
+  const [selectedFilter, setSelectedFilter] = useState<'all' | number | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Slider scroll state
@@ -48,6 +48,13 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ section, onSel
       const res = await api.get<{ services: Service[] }>('/services');
       const svcList = res.services || [];
       setServices(svcList);
+      setSelectedFilter(prev => {
+        // Keep existing selected service if still valid, otherwise default to first service
+        if (prev === null) {
+          return svcList.length > 0 ? svcList[0].id : null;
+        }
+        return prev;
+      });
     } catch (err) {
       console.error('Failed to load services & packages:', err);
     } finally {
