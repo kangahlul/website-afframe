@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Lock, Mail, ArrowRight, ShieldCheck, Camera } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
+import { BrandLogo } from '../../components/common/BrandLogo';
 import { normalizeMediaUrl } from '../../lib/mediaUtils';
 
 export const AdminLoginPage: React.FC = () => {
@@ -35,38 +36,13 @@ export const AdminLoginPage: React.FC = () => {
       <div className="w-full max-w-md space-y-8">
         
         {/* Brand Logo & Heading */}
-        <div className="text-center space-y-3">
-          <Link to="/" className="inline-flex items-center justify-center gap-3 group">
-            {settings.logo_light || settings.logo_primary ? (
-              <img
-                src={normalizeMediaUrl(settings.logo_light || settings.logo_primary)}
-                alt={settings.brand_name || 'AF Frame'}
-                className="h-12 w-auto max-w-[200px] object-contain mx-auto"
-              />
-            ) : settings.logo_monogram ? (
-              <div className="w-12 h-12 rounded-sm border border-[#C5A880]/60 flex items-center justify-center bg-[#131316] overflow-hidden p-1">
-                <img
-                  src={normalizeMediaUrl(settings.logo_monogram)}
-                  alt="Monogram"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-            ) : (
-              <div className="w-12 h-12 rounded-sm border border-[#C5A880]/60 flex items-center justify-center bg-[#131316]">
-                <span className="font-serif text-2xl font-bold tracking-wider text-[#F8F6F0]">
-                  {settings.brand_name ? settings.brand_name.slice(0, 2).toUpperCase() : 'AF'}
-                </span>
-              </div>
-            )}
+        <div className="flex flex-col items-center justify-center space-y-2 text-center">
+          <Link to="/" className="inline-flex items-center justify-center group">
+            <BrandLogo size="lg" />
           </Link>
-          <div className="flex flex-col">
-            <h1 className="font-serif text-3xl font-light text-[#F8F6F0] tracking-wider">
-              {settings.brand_name || 'AF FRAME'} CMS
-            </h1>
-            <p className="text-xs uppercase tracking-[0.2em] text-[#C5A880] mt-1 font-sans">
-              Admin Control Panel
-            </p>
-          </div>
+          <span className="text-[10px] uppercase tracking-[0.25em] text-[#C5A880] font-sans font-medium px-2.5 py-0.5 bg-[#141418] border border-[#26262D] rounded">
+            Admin Control Panel CMS
+          </span>
         </div>
 
         {/* Login Form Box */}

@@ -123,6 +123,24 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('focus', handleFocus);
   }, [fetchSiteData]);
 
+  // Dynamically update document title and favicon when settings change
+  useEffect(() => {
+    if (settings.brand_name && !window.location.pathname.startsWith('/admin')) {
+      const baseTitle = settings.brand_name;
+      const tagline = settings.tagline ? ` | ${settings.tagline}` : '';
+      document.title = `${baseTitle}${tagline}`;
+    }
+    if (settings.favicon_url) {
+      let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'shortcut icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = settings.favicon_url;
+    }
+  }, [settings.brand_name, settings.tagline, settings.favicon_url]);
+
   const updateSettings = async (newSettings: Partial<SiteSettings>) => {
     await api.put('/settings', newSettings);
     setSettings(prev => {

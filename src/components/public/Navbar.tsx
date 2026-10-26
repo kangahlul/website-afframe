@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, ArrowUpRight, MessageCircle } from 'lucide-react';
 import { useSite } from '../../context/SiteContext';
+import { BrandLogo } from '../common/BrandLogo';
 
 export const Navbar: React.FC = () => {
   const { settings, navigation } = useSite();
@@ -215,33 +216,7 @@ export const Navbar: React.FC = () => {
             }}
             className="flex items-center gap-3 group"
           >
-            {settings.logo_light || settings.logo_primary ? (
-              <img
-                src={settings.logo_light || settings.logo_primary}
-                alt={settings.brand_name || 'AF Frame'}
-                className="h-9 sm:h-10 w-auto object-contain"
-              />
-            ) : (
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-sm border border-[#C5A880]/60 flex items-center justify-center bg-[#131316] group-hover:border-[#C5A880] transition-colors shadow-sm overflow-hidden">
-                  {settings.logo_monogram ? (
-                    <img src={settings.logo_monogram} alt="Monogram" className="w-full h-full object-contain p-1" />
-                  ) : (
-                    <span className="font-serif text-lg sm:text-xl font-bold tracking-wider text-[#F8F6F0]">
-                      {settings.brand_name ? settings.brand_name.slice(0, 2).toUpperCase() : 'AF'}
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-serif text-xl sm:text-2xl tracking-[0.2em] font-bold text-[#F8F6F0] leading-none group-hover:text-[#C5A880] transition-colors">
-                    {settings.brand_name || 'AF FRAME'}
-                  </span>
-                  <span className="text-[9px] uppercase tracking-[0.28em] text-[#C5A880] font-sans mt-0.5 font-medium">
-                    {settings.tagline || 'Photography & Cinematic Production'}
-                  </span>
-                </div>
-              </div>
-            )}
+            <BrandLogo size="md" />
           </Link>
 
           {/* Desktop Navigation Links with Sticky Active Underline Indicator */}

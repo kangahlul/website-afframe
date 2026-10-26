@@ -10,6 +10,10 @@ export const BrandIdentityManager: React.FC = () => {
   const [form, setForm] = useState({
     brand_name: '',
     tagline: '',
+    logo_text: '',
+    logo_subtitle: '',
+    logo_initials: '',
+    logo_style: 'combined',
     logo_primary: '',
     logo_light: '',
     logo_dark: '',
@@ -31,6 +35,10 @@ export const BrandIdentityManager: React.FC = () => {
       setForm({
         brand_name: settings.brand_name || 'AF Frame',
         tagline: settings.tagline || 'Capturing Meaningful Moments.',
+        logo_text: settings.logo_text || settings.brand_name || 'AF FRAME',
+        logo_subtitle: settings.logo_subtitle || settings.tagline || 'Photography & Cinematic Production',
+        logo_initials: settings.logo_initials || 'AF',
+        logo_style: settings.logo_style || 'combined',
         logo_primary: settings.logo_primary || '',
         logo_light: settings.logo_light || '',
         logo_dark: settings.logo_dark || '',
@@ -106,11 +114,184 @@ export const BrandIdentityManager: React.FC = () => {
         
         {/* Logo Management */}
         <div className="p-6 bg-[#121215] border border-[#24242A] rounded-sm space-y-6">
-          <h2 className="font-serif text-lg text-white font-medium border-b border-zinc-800 pb-3">
-            1. Pengelolaan Logo & Monogram
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-zinc-800 gap-2">
+            <div>
+              <h2 className="font-serif text-lg text-white font-medium">
+                1. Pengelolaan Logo, Teks Tipografi & Monogram
+              </h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Atur gaya logo, ubah teks nama brand, sub-judul keterangan, inisial lambang, serta unggah berkas logo gambar.
+              </p>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-1 bg-[#18181D] text-[#C5A880] border border-zinc-800 rounded self-start sm:self-auto">
+              Gaya Aktif: {form.logo_style}
+            </span>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+          {/* Real-Time Live Preview of Logo */}
+          <div className="p-5 rounded border border-[#C5A880]/30 bg-[#0C0C0D] space-y-3 shadow-inner">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-widest text-[#C5A880] font-mono font-semibold">
+                Pratinjau Langsung Logo (Header & Footer)
+              </span>
+              <span className="text-[10px] text-zinc-500 font-sans">
+                Berubah seketika saat Anda mengetik
+              </span>
+            </div>
+
+            <div className="p-4 bg-[#111114] border border-white/10 rounded flex items-center justify-between flex-wrap gap-4">
+              {/* Header preview */}
+              <div className="flex items-center gap-3">
+                {form.logo_style === 'image_only' && (form.logo_primary || form.logo_light) ? (
+                  <img
+                    src={normalizeMediaUrl(form.logo_primary || form.logo_light)}
+                    alt="Logo Preview"
+                    className="h-10 w-auto object-contain"
+                  />
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-sm border border-[#C5A880]/60 flex items-center justify-center bg-[#131316] shadow-sm overflow-hidden shrink-0">
+                      {form.logo_style === 'combined' && (form.logo_monogram || form.logo_primary || form.logo_light) ? (
+                        <img
+                          src={normalizeMediaUrl(form.logo_monogram || form.logo_primary || form.logo_light)}
+                          alt="Monogram"
+                          className="w-full h-full object-contain p-1"
+                        />
+                      ) : (
+                        <span className="font-serif text-lg font-bold tracking-wider text-[#F8F6F0]">
+                          {form.logo_initials || 'AF'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-serif text-2xl tracking-[0.2em] font-bold text-[#F8F6F0] leading-none">
+                        {form.logo_text || form.brand_name || 'AF FRAME'}
+                      </span>
+                      <span className="text-[9px] uppercase tracking-[0.28em] text-[#C5A880] font-sans mt-1 font-medium">
+                        {form.logo_subtitle || form.tagline || 'Photography & Cinematic Production'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tag note */}
+              <div className="text-right text-[10px] text-zinc-500 font-mono">
+                <span>Tampilan Header Glass Publik</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Logo Style Selector */}
+          <div>
+            <label className="text-zinc-300 block mb-2 font-semibold text-xs">Pilih Gaya Tampilan Logo:</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <button
+                type="button"
+                onClick={() => handleChange('logo_style', 'combined')}
+                className={`p-3.5 rounded border text-left transition-all cursor-pointer ${
+                  form.logo_style === 'combined'
+                    ? 'border-[#C5A880] bg-[#C5A880]/10 text-white'
+                    : 'border-zinc-800 bg-[#16161B] text-zinc-400 hover:border-zinc-700'
+                }`}
+              >
+                <div className="font-semibold text-white flex items-center gap-1.5 mb-1">
+                  <span>🌟 Kombinasi Mewah</span>
+                  {form.logo_style === 'combined' && <span className="text-[10px] text-[#C5A880] font-mono">(Aktif)</span>}
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Ikon/Monogram di kiri + Teks Nama Brand & Sub-judul Emas di kanan. Paling elegan & profesional.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleChange('logo_style', 'text_emblem')}
+                className={`p-3.5 rounded border text-left transition-all cursor-pointer ${
+                  form.logo_style === 'text_emblem'
+                    ? 'border-[#C5A880] bg-[#C5A880]/10 text-white'
+                    : 'border-zinc-800 bg-[#16161B] text-zinc-400 hover:border-zinc-700'
+                }`}
+              >
+                <div className="font-semibold text-white flex items-center gap-1.5 mb-1">
+                  <span>🏛️ Emblem Tipografi</span>
+                  {form.logo_style === 'text_emblem' && <span className="text-[10px] text-[#C5A880] font-mono">(Aktif)</span>}
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Kotak inisial emas kustom + Teks Nama Brand & Sub-judul Emas tanpa gambar luar.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleChange('logo_style', 'image_only')}
+                className={`p-3.5 rounded border text-left transition-all cursor-pointer ${
+                  form.logo_style === 'image_only'
+                    ? 'border-[#C5A880] bg-[#C5A880]/10 text-white'
+                    : 'border-zinc-800 bg-[#16161B] text-zinc-400 hover:border-zinc-700'
+                }`}
+              >
+                <div className="font-semibold text-white flex items-center gap-1.5 mb-1">
+                  <span>🖼️ Hanya Gambar Logo</span>
+                  {form.logo_style === 'image_only' && <span className="text-[10px] text-[#C5A880] font-mono">(Aktif)</span>}
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Menampilkan berkas gambar logo penuh yang diunggah tanpa teks samping.
+                </p>
+              </button>
+            </div>
+          </div>
+
+          {/* Logo Text Customization Fields */}
+          <div className="p-4 bg-[#16161A] border border-zinc-800 rounded space-y-4">
+            <span className="text-xs font-semibold text-[#C5A880] uppercase tracking-wider block">
+              ✏️ Kustomisasi Teks Pada Logo
+            </span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 text-xs">
+              <div className="sm:col-span-3">
+                <label className="text-zinc-400 block mb-1">Huruf Inisial Lambang</label>
+                <input
+                  type="text"
+                  maxLength={3}
+                  value={form.logo_initials}
+                  onChange={e => handleChange('logo_initials', e.target.value.toUpperCase())}
+                  placeholder="AF"
+                  className="w-full px-3 py-2 bg-[#121215] border border-zinc-700 rounded text-zinc-200 font-serif font-bold text-base tracking-wider uppercase text-center"
+                />
+                <p className="text-[10px] text-zinc-500 mt-1">2-3 huruf di kotak monogram</p>
+              </div>
+
+              <div className="sm:col-span-5">
+                <label className="text-zinc-400 block mb-1">Teks Utama Logo (Nama Brand)</label>
+                <input
+                  type="text"
+                  value={form.logo_text}
+                  onChange={e => {
+                    handleChange('logo_text', e.target.value);
+                    handleChange('brand_name', e.target.value);
+                  }}
+                  placeholder="AF FRAME"
+                  className="w-full px-3 py-2 bg-[#121215] border border-zinc-700 rounded text-zinc-200 font-serif font-bold text-base tracking-widest"
+                />
+                <p className="text-[10px] text-zinc-500 mt-1">Judul utama dengan font serif emas</p>
+              </div>
+
+              <div className="sm:col-span-4">
+                <label className="text-zinc-400 block mb-1">Sub-Teks Keterangan di Bawah Logo</label>
+                <input
+                  type="text"
+                  value={form.logo_subtitle}
+                  onChange={e => handleChange('logo_subtitle', e.target.value)}
+                  placeholder="PHOTOGRAPHY & CINEMATIC PRODUCTION"
+                  className="w-full px-3 py-2 bg-[#121215] border border-zinc-700 rounded text-zinc-200 text-xs uppercase tracking-wider font-sans"
+                />
+                <p className="text-[10px] text-zinc-500 mt-1">Keterangan spesialisasi / tagline</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs pt-2">
             {/* Primary Logo */}
             <div className="space-y-3 p-4 bg-[#18181D] border border-zinc-800 rounded flex flex-col justify-between">
               <div>

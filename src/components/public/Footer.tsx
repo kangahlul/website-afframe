@@ -12,6 +12,7 @@ import {
   FileText
 } from 'lucide-react';
 import { InstagramIcon } from '../common/InstagramIcon';
+import { BrandLogo } from '../common/BrandLogo';
 import { useSite } from '../../context/SiteContext';
 import { Service } from '../../types';
 import { api } from '../../lib/api';
@@ -125,33 +126,7 @@ export const Footer: React.FC = () => {
               }}
               className="inline-flex items-center gap-3 group"
             >
-              {settings.logo_light || settings.logo_primary ? (
-                <img
-                  src={settings.logo_light || settings.logo_primary}
-                  alt={settings.brand_name || 'AF Frame'}
-                  className="h-10 w-auto object-contain"
-                />
-              ) : (
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-sm border border-[#C5A880]/60 flex items-center justify-center bg-[#131316] group-hover:border-[#C5A880] transition-colors shadow-sm overflow-hidden">
-                    {settings.logo_monogram ? (
-                      <img src={settings.logo_monogram} alt="Monogram" className="w-full h-full object-contain p-1" />
-                    ) : (
-                      <span className="font-serif text-xl font-bold tracking-wider text-[#F8F6F0]">
-                        {settings.brand_name ? settings.brand_name.slice(0, 2).toUpperCase() : 'AF'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-serif text-2xl tracking-[0.2em] font-bold text-[#F8F6F0] leading-none group-hover:text-[#C5A880] transition-colors">
-                      {settings.brand_name || 'AF FRAME'}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-[0.28em] text-[#C5A880] font-sans mt-0.5 font-medium">
-                      {settings.tagline || 'Photography & Cinematic Production'}
-                    </span>
-                  </div>
-                </div>
-              )}
+              <BrandLogo size="lg" />
             </Link>
 
             <p className="font-serif italic text-zinc-200 text-lg leading-snug">
