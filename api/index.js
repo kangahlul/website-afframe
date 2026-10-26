@@ -7,32 +7,49 @@ app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Health check endpoint (both /api/health and /health)
+app.get(['/api/health', '/health'], (req, res) => {
   res.json({ status: 'ok', brand: 'AF Frame', platform: 'Vercel Serverless', time: new Date().toISOString() });
 });
 
+// Statically required routes for Vercel bundler / NFT tracing
+const authRoute = require('../server/routes/auth');
+const mediaRoute = require('../server/routes/media');
+const settingsRoute = require('../server/routes/settings');
+const sectionsRoute = require('../server/routes/sections');
+const portfolioRoute = require('../server/routes/portfolio');
+const servicesRoute = require('../server/routes/services');
+const inquiriesRoute = require('../server/routes/inquiries');
+const contentRoute = require('../server/routes/content');
+const dashboardRoute = require('../server/routes/dashboard');
 
-// Mount routes individually so one failing doesn't stop others
-const routeList = [
-  ['/api/auth', './../server/routes/auth'],
-  ['/api/media', './../server/routes/media'],
-  ['/api/settings', './../server/routes/settings'],
-  ['/api/sections', './../server/routes/sections'],
-  ['/api/portfolio', './../server/routes/portfolio'],
-  ['/api/services', './../server/routes/services'],
-  ['/api/inquiries', './../server/routes/inquiries'],
-  ['/api/content', './../server/routes/content'],
-  ['/api/dashboard', './../server/routes/dashboard']
-];
+// Mount with and without /api prefix for bulletproof Vercel rewrite compatibility
+app.use('/api/auth', authRoute);
+app.use('/auth', authRoute);
 
-for (const [prefix, path] of routeList) {
-  try {
-    app.use(prefix, require(path));
-  } catch (err) {
-    console.error(`[Route Error: ${prefix}]`, err);
-  }
-}
+app.use('/api/media', mediaRoute);
+app.use('/media', mediaRoute);
+
+app.use('/api/settings', settingsRoute);
+app.use('/settings', settingsRoute);
+
+app.use('/api/sections', sectionsRoute);
+app.use('/sections', sectionsRoute);
+
+app.use('/api/portfolio', portfolioRoute);
+app.use('/portfolio', portfolioRoute);
+
+app.use('/api/services', servicesRoute);
+app.use('/services', servicesRoute);
+
+app.use('/api/inquiries', inquiriesRoute);
+app.use('/inquiries', inquiriesRoute);
+
+app.use('/api/content', contentRoute);
+app.use('/content', contentRoute);
+
+app.use('/api/dashboard', dashboardRoute);
+app.use('/dashboard', dashboardRoute);
 
 // Global error handler
 app.use((err, req, res, next) => {
