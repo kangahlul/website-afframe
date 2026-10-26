@@ -4,9 +4,9 @@ const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
 // GET /api/settings - Public: returns all settings as a key-value dictionary
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const rows = db.prepare('SELECT key, value, type, group_name FROM site_settings').all();
+    const rows = await db.prepare('SELECT key, value, type, group_name FROM site_settings').all();
     const settings = {};
     for (const row of rows) {
       settings[row.key] = row.value;
@@ -18,7 +18,7 @@ router.get('/', (req, res) => {
 });
 
 // PUT /api/settings - Admin: batch update settings
-router.put('/', authenticateToken, (req, res) => {
+router.put('/', authenticateToken, async (req, res) => {
   try {
     const updates = req.body; // e.g. { brand_name: "AF Frame", whatsapp_number: "085755152579", ... }
 
@@ -30,21 +30,17 @@ router.put('/', authenticateToken, (req, res) => {
     const updateStmt = db.prepare('UPDATE site_settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?');
     const insertStmt = db.prepare('INSERT INTO site_settings (key, value, group_name) VALUES (?, ?, ?)');
 
-    const updateTx = db.transaction((settingsObj) => {
-      for (const [key, value] of Object.entries(settingsObj)) {
-        const strVal = typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
-        const exists = checkStmt.get(key);
-        if (exists) {
-          updateStmt.run(strVal, key);
-        } else {
-          insertStmt.run(key, strVal, 'custom');
-        }
+    for (const [key, value] of Object.entries(updates)) {
+      const strVal = typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+      const exists = await checkStmt.get(key);
+      if (exists) {
+        await updateStmt.run(strVal, key);
+      } else {
+        await insertStmt.run(key, strVal, 'custom');
       }
-    });
+    }
 
-    updateTx(updates);
-
-    const rows = db.prepare('SELECT key, value, type, group_name FROM site_settings').all();
+    const rows = await db.prepare('SELECT key, value, type, group_name FROM site_settings').all();
     const settings = {};
     for (const row of rows) {
       settings[row.key] = row.value;

@@ -19,7 +19,7 @@ function slugify(text) {
 // ==========================================
 
 // GET /api/portfolio/categories (public)
-router.get('/categories', (req, res) => {
+router.get('/categories', async (req, res) => {
   try {
     const { all } = req.query;
     let query = `
@@ -32,7 +32,7 @@ router.get('/categories', (req, res) => {
     }
     query += ' GROUP BY pc.id ORDER BY pc.sort_order ASC, pc.id ASC';
 
-    const categories = db.prepare(query).all();
+    const categories = await db.prepare(query).all();
     res.json({ categories });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -40,7 +40,7 @@ router.get('/categories', (req, res) => {
 });
 
 // POST /api/portfolio/categories (admin)
-router.post('/categories', authenticateToken, (req, res) => {
+router.post('/categories', authenticateToken, async (req, res) => {
   try {
     const { name, slug, description, cover_image_url, thumbnail_url, sort_order } = req.body;
     if (!name) {
@@ -48,15 +48,15 @@ router.post('/categories', authenticateToken, (req, res) => {
     }
 
     const finalSlug = slug ? slugify(slug) : slugify(name);
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM portfolio_categories').get();
-    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder.m || 0) + 1;
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM portfolio_categories').get();
+    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.m || 0) + 1;
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO portfolio_categories (name, slug, description, cover_image_url, thumbnail_url, is_visible, sort_order)
       VALUES (?, ?, ?, ?, ?, 1, ?)
     `).run(name, finalSlug, description || '', cover_image_url || '', thumbnail_url || cover_image_url || '', nextOrder);
 
-    const created = db.prepare('SELECT * FROM portfolio_categories WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM portfolio_categories WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({ message: 'Kategori berhasil dibuat.', category: created });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -64,19 +64,19 @@ router.post('/categories', authenticateToken, (req, res) => {
 });
 
 // PUT /api/portfolio/categories/:id (admin)
-router.put('/categories/:id', authenticateToken, (req, res) => {
+router.put('/categories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, slug, description, cover_image_url, thumbnail_url, is_visible, sort_order } = req.body;
 
-    const current = db.prepare('SELECT * FROM portfolio_categories WHERE id = ?').get(id);
+    const current = await db.prepare('SELECT * FROM portfolio_categories WHERE id = ?').get(id);
     if (!current) {
       return res.status(404).json({ error: 'Kategori tidak ditemukan.' });
     }
 
     const finalSlug = slug ? slugify(slug) : (name ? slugify(name) : current.slug);
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE portfolio_categories
       SET name = COALESCE(?, name),
           slug = ?,
@@ -89,7 +89,7 @@ router.put('/categories/:id', authenticateToken, (req, res) => {
       WHERE id = ?
     `).run(name, finalSlug, description, cover_image_url, thumbnail_url, is_visible, sort_order, id);
 
-    const updated = db.prepare('SELECT * FROM portfolio_categories WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM portfolio_categories WHERE id = ?').get(id);
     res.json({ message: 'Kategori berhasil diperbarui.', category: updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -97,12 +97,11 @@ router.put('/categories/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/portfolio/categories/:id (admin)
-router.delete('/categories/:id', authenticateToken, (req, res) => {
+router.delete('/categories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    // Set category_id to NULL on existing projects instead of breaking them
-    db.prepare('UPDATE portfolio_projects SET category_id = NULL WHERE category_id = ?').run(id);
-    db.prepare('DELETE FROM portfolio_categories WHERE id = ?').run(id);
+    await db.prepare('UPDATE portfolio_projects SET category_id = NULL WHERE category_id = ?').run(id);
+    await db.prepare('DELETE FROM portfolio_categories WHERE id = ?').run(id);
     res.json({ message: 'Kategori berhasil dihapus. Proyek terkait telah dipindahkan ke tanpa kategori.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -114,7 +113,7 @@ router.delete('/categories/:id', authenticateToken, (req, res) => {
 // ==========================================
 
 // GET /api/portfolio/projects (public & admin)
-router.get('/projects', (req, res) => {
+router.get('/projects', async (req, res) => {
   try {
     const { category, featured, search, all, limit = 50, page = 1 } = req.query;
     let query = `
@@ -146,15 +145,15 @@ router.get('/projects', (req, res) => {
     query += ' ORDER BY pp.is_featured DESC, pp.sort_order ASC, pp.created_at DESC LIMIT ? OFFSET ?';
     params.push(Number(limit), (Number(page) - 1) * Number(limit));
 
-    const projects = db.prepare(query).all(...params);
+    const projects = await db.prepare(query).all(...params);
 
     // Attach gallery images to each project
     const getImages = db.prepare('SELECT id, image_url, caption, alt_text, sort_order FROM portfolio_images WHERE project_id = ? ORDER BY sort_order ASC');
     for (const p of projects) {
-      p.images = getImages.all(p.id);
+      p.images = await getImages.all(p.id);
     }
 
-    const totalCount = db.prepare('SELECT COUNT(*) as count FROM portfolio_projects' + (!all ? ' WHERE is_published = 1' : '')).get().count;
+    const totalCount = (await db.prepare('SELECT COUNT(*) as count FROM portfolio_projects' + (!all ? ' WHERE is_published = 1' : '')).get())?.count || 0;
 
     res.json({ projects, totalCount });
   } catch (error) {
@@ -163,10 +162,10 @@ router.get('/projects', (req, res) => {
 });
 
 // GET /api/portfolio/projects/:slug (public detail)
-router.get('/projects/:slug', (req, res) => {
+router.get('/projects/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
-    const project = db.prepare(`
+    const project = await db.prepare(`
       SELECT pp.*, pc.name as category_name, pc.slug as category_slug
       FROM portfolio_projects pp
       LEFT JOIN portfolio_categories pc ON pp.category_id = pc.id
@@ -177,7 +176,7 @@ router.get('/projects/:slug', (req, res) => {
       return res.status(404).json({ error: 'Proyek portofolio tidak ditemukan.' });
     }
 
-    const images = db.prepare(`
+    const images = await db.prepare(`
       SELECT id, image_url, caption, alt_text, sort_order
       FROM portfolio_images
       WHERE project_id = ?
@@ -187,7 +186,7 @@ router.get('/projects/:slug', (req, res) => {
     project.images = images;
 
     // Get related projects from the same category
-    const related = db.prepare(`
+    const related = await db.prepare(`
       SELECT pp.id, pp.title, pp.slug, pp.cover_image_url, pp.short_description, pc.name as category_name
       FROM portfolio_projects pp
       LEFT JOIN portfolio_categories pc ON pp.category_id = pc.id
@@ -202,13 +201,13 @@ router.get('/projects/:slug', (req, res) => {
 });
 
 // POST /api/portfolio/projects (admin create)
-router.post('/projects', authenticateToken, (req, res) => {
+router.post('/projects', authenticateToken, async (req, res) => {
   try {
     const {
       category_id, title, slug, short_description, full_description,
       client_name, project_date, location, cover_image_url, featured_video_url,
       is_featured, is_published, sort_order, seo_title, seo_description,
-      gallery_images // array of { image_url, caption, alt_text, sort_order } or strings
+      gallery_images
     } = req.body;
 
     if (!title) {
@@ -216,14 +215,13 @@ router.post('/projects', authenticateToken, (req, res) => {
     }
 
     let finalSlug = slug ? slugify(slug) : slugify(title);
-    // Ensure slug uniqueness
-    const existing = db.prepare('SELECT id FROM portfolio_projects WHERE slug = ?').get(finalSlug);
+    const existing = await db.prepare('SELECT id FROM portfolio_projects WHERE slug = ?').get(finalSlug);
     if (existing) {
       finalSlug = `${finalSlug}-${Date.now().toString().slice(-4)}`;
     }
 
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM portfolio_projects').get();
-    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder.m || 0) + 1;
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM portfolio_projects').get();
+    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.m || 0) + 1;
 
     const insertProj = db.prepare(`
       INSERT INTO portfolio_projects (
@@ -233,7 +231,7 @@ router.post('/projects', authenticateToken, (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = insertProj.run(
+    const result = await insertProj.run(
       category_id || null, title, finalSlug, short_description || '', full_description || '',
       client_name || '', project_date || '', location || '',
       cover_image_url || '', featured_video_url || '',
@@ -249,18 +247,19 @@ router.post('/projects', authenticateToken, (req, res) => {
         INSERT INTO portfolio_images (project_id, image_url, caption, alt_text, sort_order)
         VALUES (?, ?, ?, ?, ?)
       `);
-      gallery_images.forEach((img, idx) => {
+      for (let idx = 0; idx < gallery_images.length; idx++) {
+        const img = gallery_images[idx];
         const url = typeof img === 'string' ? img : img.image_url;
         const caption = typeof img === 'object' ? img.caption || '' : '';
         const alt = typeof img === 'object' ? img.alt_text || title : title;
         if (url) {
-          insertImg.run(projectId, url, caption, alt, idx + 1);
+          await insertImg.run(projectId, url, caption, alt, idx + 1);
         }
-      });
+      }
     }
 
-    const created = db.prepare('SELECT * FROM portfolio_projects WHERE id = ?').get(projectId);
-    created.images = db.prepare('SELECT * FROM portfolio_images WHERE project_id = ? ORDER BY sort_order ASC').all(projectId);
+    const created = await db.prepare('SELECT * FROM portfolio_projects WHERE id = ?').get(projectId);
+    created.images = await db.prepare('SELECT * FROM portfolio_images WHERE project_id = ? ORDER BY sort_order ASC').all(projectId);
 
     res.status(201).json({ message: 'Proyek portofolio berhasil dibuat.', project: created });
   } catch (error) {
@@ -269,7 +268,7 @@ router.post('/projects', authenticateToken, (req, res) => {
 });
 
 // PUT /api/portfolio/projects/:id (admin update)
-router.put('/projects/:id', authenticateToken, (req, res) => {
+router.put('/projects/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -279,20 +278,20 @@ router.put('/projects/:id', authenticateToken, (req, res) => {
       gallery_images
     } = req.body;
 
-    const current = db.prepare('SELECT * FROM portfolio_projects WHERE id = ?').get(id);
+    const current = await db.prepare('SELECT * FROM portfolio_projects WHERE id = ?').get(id);
     if (!current) {
       return res.status(404).json({ error: 'Proyek tidak ditemukan.' });
     }
 
     let finalSlug = slug ? slugify(slug) : current.slug;
     if (slug && slug !== current.slug) {
-      const existing = db.prepare('SELECT id FROM portfolio_projects WHERE slug = ? AND id != ?').get(finalSlug, id);
+      const existing = await db.prepare('SELECT id FROM portfolio_projects WHERE slug = ? AND id != ?').get(finalSlug, id);
       if (existing) {
         finalSlug = `${finalSlug}-${Date.now().toString().slice(-4)}`;
       }
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE portfolio_projects
       SET category_id = ?,
           title = COALESCE(?, title),
@@ -323,23 +322,24 @@ router.put('/projects/:id', authenticateToken, (req, res) => {
 
     // If gallery_images array is provided, replace gallery images
     if (Array.isArray(gallery_images)) {
-      db.prepare('DELETE FROM portfolio_images WHERE project_id = ?').run(id);
+      await db.prepare('DELETE FROM portfolio_images WHERE project_id = ?').run(id);
       const insertImg = db.prepare(`
         INSERT INTO portfolio_images (project_id, image_url, caption, alt_text, sort_order)
         VALUES (?, ?, ?, ?, ?)
       `);
-      gallery_images.forEach((img, idx) => {
+      for (let idx = 0; idx < gallery_images.length; idx++) {
+        const img = gallery_images[idx];
         const url = typeof img === 'string' ? img : img.image_url;
         const caption = typeof img === 'object' ? img.caption || '' : '';
         const alt = typeof img === 'object' ? img.alt_text || title || '' : (title || '');
         if (url) {
-          insertImg.run(id, url, caption, alt, idx + 1);
+          await insertImg.run(id, url, caption, alt, idx + 1);
         }
-      });
+      }
     }
 
-    const updated = db.prepare('SELECT * FROM portfolio_projects WHERE id = ?').get(id);
-    updated.images = db.prepare('SELECT * FROM portfolio_images WHERE project_id = ? ORDER BY sort_order ASC').all(id);
+    const updated = await db.prepare('SELECT * FROM portfolio_projects WHERE id = ?').get(id);
+    updated.images = await db.prepare('SELECT * FROM portfolio_images WHERE project_id = ? ORDER BY sort_order ASC').all(id);
 
     res.json({ message: 'Proyek portofolio berhasil diperbarui.', project: updated });
   } catch (error) {
@@ -348,11 +348,11 @@ router.put('/projects/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/portfolio/projects/:id (admin delete)
-router.delete('/projects/:id', authenticateToken, (req, res) => {
+router.delete('/projects/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM portfolio_images WHERE project_id = ?').run(id);
-    db.prepare('DELETE FROM portfolio_projects WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM portfolio_images WHERE project_id = ?').run(id);
+    await db.prepare('DELETE FROM portfolio_projects WHERE id = ?').run(id);
     res.json({ message: 'Proyek portofolio berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: error.message });

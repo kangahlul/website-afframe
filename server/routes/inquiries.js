@@ -4,7 +4,7 @@ const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
 // POST /api/inquiries (PUBLIC booking form submission)
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const {
       full_name, whatsapp_number, email, instagram_handle, company,
@@ -32,13 +32,13 @@ router.post('/', (req, res) => {
     // Get service & package names if IDs were provided but names are missing
     let finalServiceName = service_name || '';
     if (!finalServiceName && service_id) {
-      const s = db.prepare('SELECT name FROM services WHERE id = ?').get(service_id);
+      const s = await db.prepare('SELECT name FROM services WHERE id = ?').get(service_id);
       if (s) finalServiceName = s.name;
     }
 
     let finalPackageName = package_name || '';
     if (!finalPackageName && package_id) {
-      const p = db.prepare('SELECT package_name FROM service_packages WHERE id = ?').get(package_id);
+      const p = await db.prepare('SELECT package_name FROM service_packages WHERE id = ?').get(package_id);
       if (p) finalPackageName = p.package_name;
     }
 
@@ -50,7 +50,7 @@ router.post('/', (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'new')
     `);
 
-    const result = insertStmt.run(
+    const result = await insertStmt.run(
       inquiry_code, full_name.trim(), whatsapp_number.trim(), email ? email.trim() : '',
       instagram_handle ? instagram_handle.trim() : '', company ? company.trim() : '',
       service_id || null, package_id || null, finalServiceName, finalPackageName,
@@ -59,9 +59,8 @@ router.post('/', (req, res) => {
     );
 
     // Get WhatsApp business phone number from settings
-    const waSetting = db.prepare("SELECT value FROM site_settings WHERE key = 'whatsapp_number'").get();
+    const waSetting = await db.prepare("SELECT value FROM site_settings WHERE key = 'whatsapp_number'").get();
     const rawWaNumber = waSetting ? waSetting.value : '085755152579';
-    // Format to 62...
     let cleanWaNumber = rawWaNumber.replace(/[^0-9]/g, '');
     if (cleanWaNumber.startsWith('0')) {
       cleanWaNumber = '62' + cleanWaNumber.slice(1);
@@ -97,7 +96,7 @@ router.post('/', (req, res) => {
 });
 
 // GET /api/inquiries (ADMIN ONLY - protected)
-router.get('/', authenticateToken, (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const { status, search, limit = 50, page = 1 } = req.query;
     let query = 'SELECT * FROM inquiries WHERE 1=1';
@@ -116,15 +115,15 @@ router.get('/', authenticateToken, (req, res) => {
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
     params.push(Number(limit), (Number(page) - 1) * Number(limit));
 
-    const inquiries = db.prepare(query).all(...params);
+    const inquiries = await db.prepare(query).all(...params);
 
     // Attach staff notes count
     const getNotes = db.prepare('SELECT * FROM inquiry_notes WHERE inquiry_id = ? ORDER BY created_at DESC');
     for (const inq of inquiries) {
-      inq.notes = getNotes.all(inq.id);
+      inq.notes = await getNotes.all(inq.id);
     }
 
-    const totalCount = db.prepare('SELECT COUNT(*) as count FROM inquiries').get().count;
+    const totalCount = (await db.prepare('SELECT COUNT(*) as count FROM inquiries').get())?.count || 0;
 
     res.json({ inquiries, totalCount });
   } catch (error) {
@@ -133,15 +132,15 @@ router.get('/', authenticateToken, (req, res) => {
 });
 
 // GET /api/inquiries/:id (ADMIN ONLY)
-router.get('/:id', authenticateToken, (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const inquiry = db.prepare('SELECT * FROM inquiries WHERE id = ?').get(id);
+    const inquiry = await db.prepare('SELECT * FROM inquiries WHERE id = ?').get(id);
     if (!inquiry) {
       return res.status(404).json({ error: 'Data inquiry tidak ditemukan.' });
     }
 
-    inquiry.notes = db.prepare('SELECT * FROM inquiry_notes WHERE inquiry_id = ? ORDER BY created_at DESC').all(id);
+    inquiry.notes = await db.prepare('SELECT * FROM inquiry_notes WHERE inquiry_id = ? ORDER BY created_at DESC').all(id);
 
     res.json({ inquiry });
   } catch (error) {
@@ -150,7 +149,7 @@ router.get('/:id', authenticateToken, (req, res) => {
 });
 
 // PUT /api/inquiries/:id/status (ADMIN ONLY)
-router.put('/:id/status', authenticateToken, (req, res) => {
+router.put('/:id/status', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -160,8 +159,8 @@ router.put('/:id/status', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Status tidak valid.' });
     }
 
-    db.prepare('UPDATE inquiries SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(status, id);
-    const updated = db.prepare('SELECT * FROM inquiries WHERE id = ?').get(id);
+    await db.prepare('UPDATE inquiries SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(status, id);
+    const updated = await db.prepare('SELECT * FROM inquiries WHERE id = ?').get(id);
 
     res.json({ message: `Status berhasil diubah menjadi "${status}".`, inquiry: updated });
   } catch (error) {
@@ -170,7 +169,7 @@ router.put('/:id/status', authenticateToken, (req, res) => {
 });
 
 // POST /api/inquiries/:id/notes (ADMIN ONLY)
-router.post('/:id/notes', authenticateToken, (req, res) => {
+router.post('/:id/notes', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { note } = req.body;
@@ -180,9 +179,9 @@ router.post('/:id/notes', authenticateToken, (req, res) => {
     }
 
     const author = req.user.username || 'Admin';
-    db.prepare('INSERT INTO inquiry_notes (inquiry_id, author_name, note) VALUES (?, ?, ?)').run(id, author, note.trim());
+    await db.prepare('INSERT INTO inquiry_notes (inquiry_id, author_name, note) VALUES (?, ?, ?)').run(id, author, note.trim());
 
-    const notes = db.prepare('SELECT * FROM inquiry_notes WHERE inquiry_id = ? ORDER BY created_at DESC').all(id);
+    const notes = await db.prepare('SELECT * FROM inquiry_notes WHERE inquiry_id = ? ORDER BY created_at DESC').all(id);
     res.status(201).json({ message: 'Catatan internal berhasil ditambahkan.', notes });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -190,11 +189,10 @@ router.post('/:id/notes', authenticateToken, (req, res) => {
 });
 
 // GET /api/inquiries/export/csv (ADMIN ONLY)
-router.get('/export/csv', authenticateToken, (req, res) => {
+router.get('/export/csv', authenticateToken, async (req, res) => {
   try {
-    const rows = db.prepare('SELECT * FROM inquiries ORDER BY created_at DESC').all();
+    const rows = await db.prepare('SELECT * FROM inquiries ORDER BY created_at DESC').all();
 
-    // Generate CSV
     const headers = [
       'Kode Inquiry', 'Nama Klien', 'No WhatsApp', 'Email', 'Instagram',
       'Instansi/Perusahaan', 'Layanan', 'Paket', 'Tanggal Acara', 'Waktu Acara',
@@ -231,7 +229,7 @@ router.get('/export/csv', authenticateToken, (req, res) => {
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=afframe-inquiries-${Date.now()}.csv`);
-    res.send('\uFEFF' + csvContent); // Add UTF-8 BOM for Excel
+    res.send('\uFEFF' + csvContent);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

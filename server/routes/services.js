@@ -18,7 +18,7 @@ function slugify(text) {
 // ==========================================
 
 // GET /api/services (public & admin)
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { all } = req.query;
     let query = 'SELECT * FROM services';
@@ -27,7 +27,7 @@ router.get('/', (req, res) => {
     }
     query += ' ORDER BY sort_order ASC, id ASC';
 
-    const services = db.prepare(query).all();
+    const services = await db.prepare(query).all();
 
     // Attach packages to each service
     const getPackages = db.prepare(`
@@ -37,7 +37,7 @@ router.get('/', (req, res) => {
     `);
 
     for (const s of services) {
-      const pkgs = getPackages.all(s.id);
+      const pkgs = await getPackages.all(s.id);
       s.packages = pkgs.map(p => ({
         ...p,
         deliverables: JSON.parse(p.deliverables_json || '[]'),
@@ -52,7 +52,7 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/services (admin)
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { name, slug, short_description, icon_name, cover_image_url, sort_order } = req.body;
     if (!name) {
@@ -60,15 +60,15 @@ router.post('/', authenticateToken, (req, res) => {
     }
 
     const finalSlug = slug ? slugify(slug) : slugify(name);
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM services').get();
-    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder.m || 0) + 1;
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM services').get();
+    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.m || 0) + 1;
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO services (name, slug, short_description, icon_name, cover_image_url, is_visible, sort_order)
       VALUES (?, ?, ?, ?, ?, 1, ?)
     `).run(name, finalSlug, short_description || '', icon_name || 'Camera', cover_image_url || '', nextOrder);
 
-    const created = db.prepare('SELECT * FROM services WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM services WHERE id = ?').get(result.lastInsertRowid);
     created.packages = [];
     res.status(201).json({ message: 'Kategori layanan berhasil ditambahkan.', service: created });
   } catch (error) {
@@ -77,19 +77,19 @@ router.post('/', authenticateToken, (req, res) => {
 });
 
 // PUT /api/services/:id (admin)
-router.put('/:id', authenticateToken, (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, slug, short_description, icon_name, cover_image_url, is_visible, sort_order } = req.body;
 
-    const current = db.prepare('SELECT * FROM services WHERE id = ?').get(id);
+    const current = await db.prepare('SELECT * FROM services WHERE id = ?').get(id);
     if (!current) {
       return res.status(404).json({ error: 'Kategori layanan tidak ditemukan.' });
     }
 
     const finalSlug = slug ? slugify(slug) : (name ? slugify(name) : current.slug);
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE services
       SET name = COALESCE(?, name),
           slug = ?,
@@ -102,7 +102,7 @@ router.put('/:id', authenticateToken, (req, res) => {
       WHERE id = ?
     `).run(name, finalSlug, short_description, icon_name, cover_image_url, is_visible, sort_order, id);
 
-    const updated = db.prepare('SELECT * FROM services WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM services WHERE id = ?').get(id);
     res.json({ message: 'Kategori layanan berhasil diperbarui.', service: updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -110,11 +110,11 @@ router.put('/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/services/:id (admin)
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM service_packages WHERE service_id = ?').run(id);
-    db.prepare('DELETE FROM services WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM service_packages WHERE service_id = ?').run(id);
+    await db.prepare('DELETE FROM services WHERE id = ?').run(id);
     res.json({ message: 'Kategori layanan dan seluruh paket di dalamnya berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -126,7 +126,7 @@ router.delete('/:id', authenticateToken, (req, res) => {
 // ==========================================
 
 // GET /api/services/packages (all packages flat list)
-router.get('/packages/all', (req, res) => {
+router.get('/packages/all', async (req, res) => {
   try {
     const { all } = req.query;
     let query = `
@@ -140,7 +140,7 @@ router.get('/packages/all', (req, res) => {
     }
     query += ' ORDER BY s.sort_order ASC, sp.sort_order ASC, sp.id ASC';
 
-    const raw = db.prepare(query).all();
+    const raw = await db.prepare(query).all();
     const packages = raw.map(p => ({
       ...p,
       deliverables: JSON.parse(p.deliverables_json || '[]'),
@@ -154,7 +154,7 @@ router.get('/packages/all', (req, res) => {
 });
 
 // POST /api/services/packages (admin)
-router.post('/packages', authenticateToken, (req, res) => {
+router.post('/packages', authenticateToken, async (req, res) => {
   try {
     const {
       service_id, category_name, package_name,
@@ -168,16 +168,16 @@ router.post('/packages', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Layanan induk dan nama paket wajib diisi.' });
     }
 
-    const service = db.prepare('SELECT name FROM services WHERE id = ?').get(service_id);
+    const service = await db.prepare('SELECT name FROM services WHERE id = ?').get(service_id);
     const catName = category_name || (service ? service.name : 'General');
 
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM service_packages WHERE service_id = ?').get(service_id);
-    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder.m || 0) + 1;
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM service_packages WHERE service_id = ?').get(service_id);
+    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.m || 0) + 1;
 
     const deliverablesJson = JSON.stringify(Array.isArray(deliverables) ? deliverables : (deliverables ? deliverables.split('\n').filter(Boolean) : []));
     const inclusionsJson = JSON.stringify(Array.isArray(inclusions) ? inclusions : []);
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO service_packages (
         service_id, category_name, package_name,
         regular_price, promotional_price,
@@ -193,7 +193,7 @@ router.post('/packages', authenticateToken, (req, res) => {
       is_featured ? 1 : 0, is_published !== undefined ? (is_published ? 1 : 0) : 1, nextOrder
     );
 
-    const created = db.prepare('SELECT * FROM service_packages WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM service_packages WHERE id = ?').get(result.lastInsertRowid);
     created.deliverables = JSON.parse(created.deliverables_json || '[]');
     created.inclusions = JSON.parse(created.inclusions_json || '[]');
 
@@ -204,17 +204,17 @@ router.post('/packages', authenticateToken, (req, res) => {
 });
 
 // POST /api/services/packages/:id/duplicate (admin)
-router.post('/packages/:id/duplicate', authenticateToken, (req, res) => {
+router.post('/packages/:id/duplicate', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const original = db.prepare('SELECT * FROM service_packages WHERE id = ?').get(id);
+    const original = await db.prepare('SELECT * FROM service_packages WHERE id = ?').get(id);
     if (!original) {
       return res.status(404).json({ error: 'Paket tidak ditemukan.' });
     }
 
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM service_packages WHERE service_id = ?').get(original.service_id);
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM service_packages WHERE service_id = ?').get(original.service_id);
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO service_packages (
         service_id, category_name, package_name,
         regular_price, promotional_price,
@@ -227,10 +227,10 @@ router.post('/packages/:id/duplicate', authenticateToken, (req, res) => {
       original.regular_price, original.promotional_price,
       original.is_price_hidden, original.is_quotation_based,
       original.duration, original.deliverables_json, original.inclusions_json,
-      0, (maxOrder.m || 0) + 1
+      0, (maxOrder?.m || 0) + 1
     );
 
-    const duplicated = db.prepare('SELECT * FROM service_packages WHERE id = ?').get(result.lastInsertRowid);
+    const duplicated = await db.prepare('SELECT * FROM service_packages WHERE id = ?').get(result.lastInsertRowid);
     duplicated.deliverables = JSON.parse(duplicated.deliverables_json || '[]');
     duplicated.inclusions = JSON.parse(duplicated.inclusions_json || '[]');
 
@@ -241,7 +241,7 @@ router.post('/packages/:id/duplicate', authenticateToken, (req, res) => {
 });
 
 // PUT /api/services/packages/:id (admin)
-router.put('/packages/:id', authenticateToken, (req, res) => {
+router.put('/packages/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -252,7 +252,7 @@ router.put('/packages/:id', authenticateToken, (req, res) => {
       is_featured, is_published, sort_order
     } = req.body;
 
-    const current = db.prepare('SELECT * FROM service_packages WHERE id = ?').get(id);
+    const current = await db.prepare('SELECT * FROM service_packages WHERE id = ?').get(id);
     if (!current) {
       return res.status(404).json({ error: 'Paket tidak ditemukan.' });
     }
@@ -267,7 +267,7 @@ router.put('/packages/:id', authenticateToken, (req, res) => {
       inclJson = JSON.stringify(Array.isArray(inclusions) ? inclusions : []);
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE service_packages
       SET service_id = COALESCE(?, service_id),
           category_name = COALESCE(?, category_name),
@@ -296,7 +296,7 @@ router.put('/packages/:id', authenticateToken, (req, res) => {
       sort_order, id
     );
 
-    const updated = db.prepare('SELECT * FROM service_packages WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM service_packages WHERE id = ?').get(id);
     updated.deliverables = JSON.parse(updated.deliverables_json || '[]');
     updated.inclusions = JSON.parse(updated.inclusions_json || '[]');
 
@@ -307,10 +307,10 @@ router.put('/packages/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/services/packages/:id (admin)
-router.delete('/packages/:id', authenticateToken, (req, res) => {
+router.delete('/packages/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM service_packages WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM service_packages WHERE id = ?').run(id);
     res.json({ message: 'Paket berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: error.message });

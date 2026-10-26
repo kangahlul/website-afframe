@@ -7,6 +7,11 @@ const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
 const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  try {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  } catch (e) {}
+}
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -22,7 +27,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB limit
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|webp|svg|gif|mp4|webm|mov/;
     const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
@@ -35,7 +40,7 @@ const upload = multer({
 });
 
 // GET /api/media (public or authenticated)
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { category, search, limit = 100, page = 1 } = req.query;
     let query = 'SELECT * FROM media_assets WHERE 1=1';
@@ -54,8 +59,8 @@ router.get('/', (req, res) => {
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
     params.push(Number(limit), (Number(page) - 1) * Number(limit));
 
-    const assets = db.prepare(query).all(...params);
-    const totalCount = db.prepare('SELECT COUNT(*) as count FROM media_assets').get().count;
+    const assets = await db.prepare(query).all(...params);
+    const totalCount = (await db.prepare('SELECT COUNT(*) as count FROM media_assets').get())?.count || 0;
 
     res.json({ assets, totalCount });
   } catch (error) {
@@ -64,7 +69,7 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/media/upload (admin only)
-router.post('/upload', authenticateToken, upload.array('files', 15), (req, res) => {
+router.post('/upload', authenticateToken, upload.array('files', 15), async (req, res) => {
   try {
     const files = req.files;
     const category = req.body.category || 'general';
@@ -81,34 +86,30 @@ router.post('/upload', authenticateToken, upload.array('files', 15), (req, res) 
 
     const insertedAssets = [];
 
-    const insertMany = db.transaction((filesList) => {
-      for (const file of filesList) {
-        const fileUrl = `/uploads/${file.filename}`;
-        const altText = req.body.alt_text || path.basename(file.originalname, path.extname(file.originalname));
-        const result = insertStmt.run(
-          file.filename,
-          file.originalname,
-          file.mimetype,
-          file.size,
-          category,
-          fileUrl,
-          altText,
-          req.body.description || ''
-        );
-        insertedAssets.push({
-          id: result.lastInsertRowid,
-          filename: file.filename,
-          original_name: file.originalname,
-          mime_type: file.mimetype,
-          file_size: file.size,
-          category,
-          url: fileUrl,
-          alt_text: altText
-        });
-      }
-    });
-
-    insertMany(files);
+    for (const file of files) {
+      const fileUrl = `/uploads/${file.filename}`;
+      const altText = req.body.alt_text || path.basename(file.originalname, path.extname(file.originalname));
+      const result = await insertStmt.run(
+        file.filename,
+        file.originalname,
+        file.mimetype,
+        file.size,
+        category,
+        fileUrl,
+        altText,
+        req.body.description || ''
+      );
+      insertedAssets.push({
+        id: result.lastInsertRowid,
+        filename: file.filename,
+        original_name: file.originalname,
+        mime_type: file.mimetype,
+        file_size: file.size,
+        category,
+        url: fileUrl,
+        alt_text: altText
+      });
+    }
 
     res.status(201).json({
       message: `${files.length} berkas berhasil diunggah.`,
@@ -120,7 +121,7 @@ router.post('/upload', authenticateToken, upload.array('files', 15), (req, res) 
 });
 
 // POST /api/media/external (e.g. YouTube, Vimeo, or external image URL)
-router.post('/external', authenticateToken, (req, res) => {
+router.post('/external', authenticateToken, async (req, res) => {
   try {
     const { url, title, category = 'video', alt_text = '', description = '' } = req.body;
     if (!url) {
@@ -134,7 +135,7 @@ router.post('/external', authenticateToken, (req, res) => {
     `);
 
     const isVideo = url.includes('youtube') || url.includes('youtu.be') || url.includes('vimeo');
-    const result = insertStmt.run(
+    const result = await insertStmt.run(
       url,
       title || 'External Media',
       isVideo ? 'video/external' : 'image/external',
@@ -160,12 +161,12 @@ router.post('/external', authenticateToken, (req, res) => {
 });
 
 // PUT /api/media/:id (update alt text, title, category)
-router.put('/:id', authenticateToken, (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { alt_text, description, category, original_name } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE media_assets
       SET alt_text = COALESCE(?, alt_text),
           description = COALESCE(?, description),
@@ -174,7 +175,7 @@ router.put('/:id', authenticateToken, (req, res) => {
       WHERE id = ?
     `).run(alt_text, description, category, original_name, id);
 
-    const updated = db.prepare('SELECT * FROM media_assets WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM media_assets WHERE id = ?').get(id);
     res.json({ message: 'Informasi media berhasil diperbarui.', asset: updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -182,10 +183,10 @@ router.put('/:id', authenticateToken, (req, res) => {
 });
 
 // GET /api/media/usage-check/:id
-router.get('/usage-check/:id', authenticateToken, (req, res) => {
+router.get('/usage-check/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const asset = db.prepare('SELECT * FROM media_assets WHERE id = ?').get(id);
+    const asset = await db.prepare('SELECT * FROM media_assets WHERE id = ?').get(id);
     if (!asset) {
       return res.status(404).json({ error: 'Berkas media tidak ditemukan.' });
     }
@@ -193,25 +194,25 @@ router.get('/usage-check/:id', authenticateToken, (req, res) => {
     const usages = [];
 
     // Check in site_settings
-    const settings = db.prepare('SELECT key, value FROM site_settings WHERE value = ?').all(asset.url);
+    const settings = await db.prepare('SELECT key, value FROM site_settings WHERE value = ?').all(asset.url);
     if (settings.length > 0) {
       usages.push({ type: 'Site Settings', details: settings.map(s => s.key).join(', ') });
     }
 
     // Check in website_sections
-    const sections = db.prepare('SELECT section_key, title FROM website_sections WHERE background_media_url = ?').all(asset.url);
+    const sections = await db.prepare('SELECT section_key, title FROM website_sections WHERE background_media_url = ?').all(asset.url);
     if (sections.length > 0) {
       usages.push({ type: 'Page Sections', details: sections.map(s => s.title || s.section_key).join(', ') });
     }
 
     // Check in portfolio_projects
-    const projects = db.prepare('SELECT id, title FROM portfolio_projects WHERE cover_image_url = ?').all(asset.url);
+    const projects = await db.prepare('SELECT id, title FROM portfolio_projects WHERE cover_image_url = ?').all(asset.url);
     if (projects.length > 0) {
       usages.push({ type: 'Portfolio Covers', details: projects.map(p => p.title).join(', ') });
     }
 
     // Check in portfolio_images
-    const projectImages = db.prepare(`
+    const projectImages = await db.prepare(`
       SELECT p.title FROM portfolio_images pi
       JOIN portfolio_projects p ON pi.project_id = p.id
       WHERE pi.image_url = ?
@@ -221,7 +222,7 @@ router.get('/usage-check/:id', authenticateToken, (req, res) => {
     }
 
     // Check in services
-    const services = db.prepare('SELECT name FROM services WHERE cover_image_url = ?').all(asset.url);
+    const services = await db.prepare('SELECT name FROM services WHERE cover_image_url = ?').all(asset.url);
     if (services.length > 0) {
       usages.push({ type: 'Services', details: services.map(s => s.name).join(', ') });
     }
@@ -236,10 +237,10 @@ router.get('/usage-check/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/media/:id
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const asset = db.prepare('SELECT * FROM media_assets WHERE id = ?').get(id);
+    const asset = await db.prepare('SELECT * FROM media_assets WHERE id = ?').get(id);
 
     if (!asset) {
       return res.status(404).json({ error: 'Berkas tidak ditemukan.' });
@@ -257,7 +258,7 @@ router.delete('/:id', authenticateToken, (req, res) => {
       }
     }
 
-    db.prepare('DELETE FROM media_assets WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM media_assets WHERE id = ?').run(id);
     res.json({ message: 'Berkas media berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: error.message });

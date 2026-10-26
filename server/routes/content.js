@@ -18,7 +18,7 @@ function slugify(text) {
 // ==========================================
 
 // GET /api/content/faqs (public & admin)
-router.get('/faqs', (req, res) => {
+router.get('/faqs', async (req, res) => {
   try {
     const { all } = req.query;
     let query = 'SELECT * FROM faq_items';
@@ -26,7 +26,7 @@ router.get('/faqs', (req, res) => {
       query += ' WHERE is_published = 1';
     }
     query += ' ORDER BY sort_order ASC, id ASC';
-    const faqs = db.prepare(query).all();
+    const faqs = await db.prepare(query).all();
     res.json({ faqs });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -34,22 +34,22 @@ router.get('/faqs', (req, res) => {
 });
 
 // POST /api/content/faqs (admin)
-router.post('/faqs', authenticateToken, (req, res) => {
+router.post('/faqs', authenticateToken, async (req, res) => {
   try {
     const { question, answer, category = 'general', sort_order } = req.body;
     if (!question || !answer) {
       return res.status(400).json({ error: 'Pertanyaan dan jawaban wajib diisi.' });
     }
 
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM faq_items').get();
-    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder.m || 0) + 1;
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM faq_items').get();
+    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.m || 0) + 1;
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO faq_items (question, answer, category, is_published, sort_order)
       VALUES (?, ?, ?, 1, ?)
     `).run(question, answer, category, nextOrder);
 
-    const created = db.prepare('SELECT * FROM faq_items WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM faq_items WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({ message: 'FAQ berhasil ditambahkan.', faq: created });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -57,12 +57,12 @@ router.post('/faqs', authenticateToken, (req, res) => {
 });
 
 // PUT /api/content/faqs/:id (admin)
-router.put('/faqs/:id', authenticateToken, (req, res) => {
+router.put('/faqs/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { question, answer, category, is_published, sort_order } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE faq_items
       SET question = COALESCE(?, question),
           answer = COALESCE(?, answer),
@@ -73,7 +73,7 @@ router.put('/faqs/:id', authenticateToken, (req, res) => {
       WHERE id = ?
     `).run(question, answer, category, is_published, sort_order, id);
 
-    const updated = db.prepare('SELECT * FROM faq_items WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM faq_items WHERE id = ?').get(id);
     res.json({ message: 'FAQ berhasil diperbarui.', faq: updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -81,10 +81,10 @@ router.put('/faqs/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/content/faqs/:id (admin)
-router.delete('/faqs/:id', authenticateToken, (req, res) => {
+router.delete('/faqs/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM faq_items WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM faq_items WHERE id = ?').run(id);
     res.json({ message: 'FAQ berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -96,7 +96,7 @@ router.delete('/faqs/:id', authenticateToken, (req, res) => {
 // ==========================================
 
 // GET /api/content/benefits (public & admin)
-router.get('/benefits', (req, res) => {
+router.get('/benefits', async (req, res) => {
   try {
     const { all } = req.query;
     let query = 'SELECT * FROM benefits';
@@ -104,7 +104,7 @@ router.get('/benefits', (req, res) => {
       query += ' WHERE is_visible = 1';
     }
     query += ' ORDER BY sort_order ASC, id ASC';
-    const benefits = db.prepare(query).all();
+    const benefits = await db.prepare(query).all();
     res.json({ benefits });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -112,22 +112,22 @@ router.get('/benefits', (req, res) => {
 });
 
 // POST /api/content/benefits (admin)
-router.post('/benefits', authenticateToken, (req, res) => {
+router.post('/benefits', authenticateToken, async (req, res) => {
   try {
     const { title, description, icon_name = 'Sparkles', image_url = '', sort_order } = req.body;
     if (!title || !description) {
       return res.status(400).json({ error: 'Judul dan deskripsi keunggulan wajib diisi.' });
     }
 
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM benefits').get();
-    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder.m || 0) + 1;
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM benefits').get();
+    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.m || 0) + 1;
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO benefits (title, description, icon_name, image_url, is_visible, sort_order)
       VALUES (?, ?, ?, ?, 1, ?)
     `).run(title, description, icon_name, image_url, nextOrder);
 
-    const created = db.prepare('SELECT * FROM benefits WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM benefits WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({ message: 'Keunggulan berhasil ditambahkan.', benefit: created });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -135,12 +135,12 @@ router.post('/benefits', authenticateToken, (req, res) => {
 });
 
 // PUT /api/content/benefits/:id (admin)
-router.put('/benefits/:id', authenticateToken, (req, res) => {
+router.put('/benefits/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, icon_name, image_url, is_visible, sort_order } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE benefits
       SET title = COALESCE(?, title),
           description = COALESCE(?, description),
@@ -152,7 +152,7 @@ router.put('/benefits/:id', authenticateToken, (req, res) => {
       WHERE id = ?
     `).run(title, description, icon_name, image_url, is_visible, sort_order, id);
 
-    const updated = db.prepare('SELECT * FROM benefits WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM benefits WHERE id = ?').get(id);
     res.json({ message: 'Keunggulan berhasil diperbarui.', benefit: updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -160,10 +160,10 @@ router.put('/benefits/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/content/benefits/:id (admin)
-router.delete('/benefits/:id', authenticateToken, (req, res) => {
+router.delete('/benefits/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM benefits WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM benefits WHERE id = ?').run(id);
     res.json({ message: 'Keunggulan berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -175,7 +175,7 @@ router.delete('/benefits/:id', authenticateToken, (req, res) => {
 // ==========================================
 
 // GET /api/content/terms (public & admin)
-router.get('/terms', (req, res) => {
+router.get('/terms', async (req, res) => {
   try {
     const { all } = req.query;
     let query = 'SELECT * FROM terms_content';
@@ -183,7 +183,7 @@ router.get('/terms', (req, res) => {
       query += ' WHERE is_published = 1';
     }
     query += ' ORDER BY clause_number ASC, sort_order ASC, id ASC';
-    const terms = db.prepare(query).all();
+    const terms = await db.prepare(query).all();
     res.json({ terms });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -191,22 +191,22 @@ router.get('/terms', (req, res) => {
 });
 
 // POST /api/content/terms (admin)
-router.post('/terms', authenticateToken, (req, res) => {
+router.post('/terms', authenticateToken, async (req, res) => {
   try {
     const { title, clause_number, clause_text, sort_order } = req.body;
     if (!title || !clause_text) {
       return res.status(400).json({ error: 'Judul pasal dan isi klausul wajib diisi.' });
     }
 
-    const maxClause = db.prepare('SELECT MAX(clause_number) as m FROM terms_content').get();
-    const nextClause = clause_number !== undefined ? clause_number : (maxClause.m || 0) + 1;
+    const maxClause = await db.prepare('SELECT MAX(clause_number) as m FROM terms_content').get();
+    const nextClause = clause_number !== undefined ? clause_number : (maxClause?.m || 0) + 1;
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO terms_content (title, clause_number, clause_text, is_published, sort_order)
       VALUES (?, ?, ?, 1, ?)
     `).run(title, nextClause, clause_text, sort_order || nextClause);
 
-    const created = db.prepare('SELECT * FROM terms_content WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM terms_content WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({ message: 'Pasal ketentuan berhasil ditambahkan.', term: created });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -214,12 +214,12 @@ router.post('/terms', authenticateToken, (req, res) => {
 });
 
 // PUT /api/content/terms/:id (admin)
-router.put('/terms/:id', authenticateToken, (req, res) => {
+router.put('/terms/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, clause_number, clause_text, is_published, sort_order } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE terms_content
       SET title = COALESCE(?, title),
           clause_number = COALESCE(?, clause_number),
@@ -230,7 +230,7 @@ router.put('/terms/:id', authenticateToken, (req, res) => {
       WHERE id = ?
     `).run(title, clause_number, clause_text, is_published, sort_order, id);
 
-    const updated = db.prepare('SELECT * FROM terms_content WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM terms_content WHERE id = ?').get(id);
     res.json({ message: 'Pasal ketentuan berhasil diperbarui.', term: updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -238,10 +238,10 @@ router.put('/terms/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/content/terms/:id (admin)
-router.delete('/terms/:id', authenticateToken, (req, res) => {
+router.delete('/terms/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM terms_content WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM terms_content WHERE id = ?').run(id);
     res.json({ message: 'Pasal ketentuan berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -253,7 +253,7 @@ router.delete('/terms/:id', authenticateToken, (req, res) => {
 // ==========================================
 
 // GET /api/content/service-areas (public & admin)
-router.get('/service-areas', (req, res) => {
+router.get('/service-areas', async (req, res) => {
   try {
     const { all } = req.query;
     let query = 'SELECT * FROM service_areas';
@@ -261,7 +261,7 @@ router.get('/service-areas', (req, res) => {
       query += ' WHERE is_visible = 1';
     }
     query += ' ORDER BY sort_order ASC, id ASC';
-    const areas = db.prepare(query).all();
+    const areas = await db.prepare(query).all();
     res.json({ areas });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -269,22 +269,22 @@ router.get('/service-areas', (req, res) => {
 });
 
 // POST /api/content/service-areas (admin)
-router.post('/service-areas', authenticateToken, (req, res) => {
+router.post('/service-areas', authenticateToken, async (req, res) => {
   try {
     const { name, description, image_url = '', is_primary = 1, sort_order } = req.body;
     if (!name || !description) {
       return res.status(400).json({ error: 'Nama wilayah dan deskripsi wajib diisi.' });
     }
 
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM service_areas').get();
-    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder.m || 0) + 1;
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM service_areas').get();
+    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.m || 0) + 1;
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO service_areas (name, description, image_url, is_primary, is_visible, sort_order)
       VALUES (?, ?, ?, ?, 1, ?)
     `).run(name, description, image_url, is_primary ? 1 : 0, nextOrder);
 
-    const created = db.prepare('SELECT * FROM service_areas WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM service_areas WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({ message: 'Wilayah layanan berhasil ditambahkan.', area: created });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -292,12 +292,12 @@ router.post('/service-areas', authenticateToken, (req, res) => {
 });
 
 // PUT /api/content/service-areas/:id (admin)
-router.put('/service-areas/:id', authenticateToken, (req, res) => {
+router.put('/service-areas/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, image_url, is_primary, is_visible, sort_order } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE service_areas
       SET name = COALESCE(?, name),
           description = COALESCE(?, description),
@@ -309,7 +309,7 @@ router.put('/service-areas/:id', authenticateToken, (req, res) => {
       WHERE id = ?
     `).run(name, description, image_url, is_primary, is_visible, sort_order, id);
 
-    const updated = db.prepare('SELECT * FROM service_areas WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM service_areas WHERE id = ?').get(id);
     res.json({ message: 'Wilayah layanan berhasil diperbarui.', area: updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -317,10 +317,10 @@ router.put('/service-areas/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/content/service-areas/:id (admin)
-router.delete('/service-areas/:id', authenticateToken, (req, res) => {
+router.delete('/service-areas/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM service_areas WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM service_areas WHERE id = ?').run(id);
     res.json({ message: 'Wilayah layanan berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -332,7 +332,7 @@ router.delete('/service-areas/:id', authenticateToken, (req, res) => {
 // ==========================================
 
 // GET /api/content/navigation (public & admin)
-router.get('/navigation', (req, res) => {
+router.get('/navigation', async (req, res) => {
   try {
     const { all, location } = req.query;
     let query = 'SELECT * FROM navigation_items WHERE 1=1';
@@ -347,7 +347,7 @@ router.get('/navigation', (req, res) => {
     }
     query += ' ORDER BY sort_order ASC, id ASC';
 
-    const items = db.prepare(query).all(...params);
+    const items = await db.prepare(query).all(...params);
     res.json({ items });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -355,22 +355,22 @@ router.get('/navigation', (req, res) => {
 });
 
 // POST /api/content/navigation (admin)
-router.post('/navigation', authenticateToken, (req, res) => {
+router.post('/navigation', authenticateToken, async (req, res) => {
   try {
     const { label, url, target = '_self', location = 'header', sort_order } = req.body;
     if (!label || !url) {
       return res.status(400).json({ error: 'Label dan URL tautan wajib diisi.' });
     }
 
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM navigation_items WHERE location = ?').get(location);
-    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder.m || 0) + 1;
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM navigation_items WHERE location = ?').get(location);
+    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.m || 0) + 1;
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO navigation_items (label, url, target, location, is_visible, sort_order)
       VALUES (?, ?, ?, ?, 1, ?)
     `).run(label, url, target, location, nextOrder);
 
-    const created = db.prepare('SELECT * FROM navigation_items WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM navigation_items WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({ message: 'Tautan menu berhasil ditambahkan.', item: created });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -378,12 +378,12 @@ router.post('/navigation', authenticateToken, (req, res) => {
 });
 
 // PUT /api/content/navigation/:id (admin)
-router.put('/navigation/:id', authenticateToken, (req, res) => {
+router.put('/navigation/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { label, url, target, location, is_visible, sort_order } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE navigation_items
       SET label = COALESCE(?, label),
           url = COALESCE(?, url),
@@ -395,7 +395,7 @@ router.put('/navigation/:id', authenticateToken, (req, res) => {
       WHERE id = ?
     `).run(label, url, target, location, is_visible, sort_order, id);
 
-    const updated = db.prepare('SELECT * FROM navigation_items WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM navigation_items WHERE id = ?').get(id);
     res.json({ message: 'Tautan menu berhasil diperbarui.', item: updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -403,10 +403,10 @@ router.put('/navigation/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/content/navigation/:id (admin)
-router.delete('/navigation/:id', authenticateToken, (req, res) => {
+router.delete('/navigation/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM navigation_items WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM navigation_items WHERE id = ?').run(id);
     res.json({ message: 'Tautan menu berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -418,7 +418,7 @@ router.delete('/navigation/:id', authenticateToken, (req, res) => {
 // ==========================================
 
 // GET /api/content/pages (public & admin)
-router.get('/pages', (req, res) => {
+router.get('/pages', async (req, res) => {
   try {
     const { all } = req.query;
     let query = 'SELECT * FROM website_pages';
@@ -426,7 +426,7 @@ router.get('/pages', (req, res) => {
       query += ' WHERE is_published = 1';
     }
     query += ' ORDER BY sort_order ASC, id ASC';
-    const pages = db.prepare(query).all();
+    const pages = await db.prepare(query).all();
     res.json({ pages });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -434,10 +434,10 @@ router.get('/pages', (req, res) => {
 });
 
 // GET /api/content/pages/:slug (public)
-router.get('/pages/:slug', (req, res) => {
+router.get('/pages/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
-    const page = db.prepare('SELECT * FROM website_pages WHERE slug = ?').get(slug);
+    const page = await db.prepare('SELECT * FROM website_pages WHERE slug = ?').get(slug);
     if (!page) {
       return res.status(404).json({ error: 'Halaman tidak ditemukan.' });
     }
@@ -448,7 +448,7 @@ router.get('/pages/:slug', (req, res) => {
 });
 
 // POST /api/content/pages (admin)
-router.post('/pages', authenticateToken, (req, res) => {
+router.post('/pages', authenticateToken, async (req, res) => {
   try {
     const { title, slug, description, content_json, seo_title, seo_description, og_image_url, sort_order } = req.body;
     if (!title) {
@@ -456,15 +456,15 @@ router.post('/pages', authenticateToken, (req, res) => {
     }
 
     const finalSlug = slug ? slugify(slug) : slugify(title);
-    const existing = db.prepare('SELECT id FROM website_pages WHERE slug = ?').get(finalSlug);
+    const existing = await db.prepare('SELECT id FROM website_pages WHERE slug = ?').get(finalSlug);
     if (existing) {
       return res.status(400).json({ error: 'Slug URL halaman sudah digunakan. Silakan gunakan slug lain.' });
     }
 
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM website_pages').get();
-    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder.m || 0) + 1;
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM website_pages').get();
+    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.m || 0) + 1;
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO website_pages (
         title, slug, description, content_json, seo_title, seo_description, og_image_url, is_published, sort_order
       ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
@@ -477,7 +477,7 @@ router.post('/pages', authenticateToken, (req, res) => {
       nextOrder
     );
 
-    const created = db.prepare('SELECT * FROM website_pages WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM website_pages WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({ message: 'Halaman berhasil dibuat.', page: created });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -485,25 +485,25 @@ router.post('/pages', authenticateToken, (req, res) => {
 });
 
 // PUT /api/content/pages/:id (admin)
-router.put('/pages/:id', authenticateToken, (req, res) => {
+router.put('/pages/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, slug, description, content_json, seo_title, seo_description, og_image_url, is_published, sort_order } = req.body;
 
-    const current = db.prepare('SELECT * FROM website_pages WHERE id = ?').get(id);
+    const current = await db.prepare('SELECT * FROM website_pages WHERE id = ?').get(id);
     if (!current) {
       return res.status(404).json({ error: 'Halaman tidak ditemukan.' });
     }
 
     let finalSlug = slug ? slugify(slug) : current.slug;
     if (slug && slug !== current.slug) {
-      const existing = db.prepare('SELECT id FROM website_pages WHERE slug = ? AND id != ?').get(finalSlug, id);
+      const existing = await db.prepare('SELECT id FROM website_pages WHERE slug = ? AND id != ?').get(finalSlug, id);
       if (existing) {
         return res.status(400).json({ error: 'Slug URL sudah digunakan oleh halaman lain.' });
       }
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE website_pages
       SET title = COALESCE(?, title),
           slug = ?,
@@ -522,7 +522,7 @@ router.put('/pages/:id', authenticateToken, (req, res) => {
       is_published, sort_order, id
     );
 
-    const updated = db.prepare('SELECT * FROM website_pages WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM website_pages WHERE id = ?').get(id);
     res.json({ message: 'Halaman berhasil diperbarui.', page: updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -530,10 +530,10 @@ router.put('/pages/:id', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/content/pages/:id (admin)
-router.delete('/pages/:id', authenticateToken, (req, res) => {
+router.delete('/pages/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM website_pages WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM website_pages WHERE id = ?').run(id);
     res.json({ message: 'Halaman berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: error.message });

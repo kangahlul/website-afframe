@@ -4,7 +4,7 @@ const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
 // GET /api/sections - List sections
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { all } = req.query;
     let query = 'SELECT * FROM website_sections';
@@ -13,7 +13,7 @@ router.get('/', (req, res) => {
     }
     query += ' ORDER BY sort_order ASC, id ASC';
 
-    const sections = db.prepare(query).all();
+    const sections = await db.prepare(query).all();
     res.json({ sections });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -21,10 +21,10 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/sections/:key
-router.get('/:key', (req, res) => {
+router.get('/:key', async (req, res) => {
   try {
     const { key } = req.params;
-    const section = db.prepare('SELECT * FROM website_sections WHERE section_key = ?').get(key);
+    const section = await db.prepare('SELECT * FROM website_sections WHERE section_key = ?').get(key);
     if (!section) {
       return res.status(404).json({ error: 'Section tidak ditemukan.' });
     }
@@ -35,7 +35,7 @@ router.get('/:key', (req, res) => {
 });
 
 // PUT /api/sections/:id - Update section
-router.put('/:id', authenticateToken, (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -47,7 +47,7 @@ router.put('/:id', authenticateToken, (req, res) => {
       theme, is_visible, sort_order
     } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE website_sections
       SET title = COALESCE(?, title),
           subtitle = COALESCE(?, subtitle),
@@ -75,7 +75,7 @@ router.put('/:id', authenticateToken, (req, res) => {
       theme, is_visible, sort_order, id
     );
 
-    const updated = db.prepare('SELECT * FROM website_sections WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM website_sections WHERE id = ?').get(id);
     res.json({ message: 'Section berhasil diperbarui.', section: updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -83,7 +83,7 @@ router.put('/:id', authenticateToken, (req, res) => {
 });
 
 // POST /api/sections/reorder - Batch update section order
-router.post('/reorder', authenticateToken, (req, res) => {
+router.post('/reorder', authenticateToken, async (req, res) => {
   try {
     const { items } = req.body; // array of { id, sort_order, is_visible }
     if (!Array.isArray(items)) {
@@ -96,15 +96,11 @@ router.post('/reorder', authenticateToken, (req, res) => {
       WHERE id = ?
     `);
 
-    const reorderTx = db.transaction((orderList) => {
-      for (const item of orderList) {
-        updateStmt.run(item.sort_order, item.is_visible !== undefined ? (item.is_visible ? 1 : 0) : null, item.id);
-      }
-    });
+    for (const item of items) {
+      await updateStmt.run(item.sort_order, item.is_visible !== undefined ? (item.is_visible ? 1 : 0) : null, item.id);
+    }
 
-    reorderTx(items);
-
-    const sections = db.prepare('SELECT * FROM website_sections ORDER BY sort_order ASC').all();
+    const sections = await db.prepare('SELECT * FROM website_sections ORDER BY sort_order ASC').all();
     res.json({ message: 'Urutan section berhasil diperbarui.', sections });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -112,7 +108,7 @@ router.post('/reorder', authenticateToken, (req, res) => {
 });
 
 // POST /api/sections - Add custom reusable section
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const {
       section_key, title, subtitle, description,
@@ -125,10 +121,10 @@ router.post('/', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Section key dan judul wajib diisi.' });
     }
 
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as maxOrder FROM website_sections').get();
-    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder.maxOrder || 0) + 1;
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as maxOrder FROM website_sections').get();
+    const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.maxOrder || 0) + 1;
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO website_sections (
         section_key, title, subtitle, description,
         cta_primary_text, cta_primary_url,
@@ -142,7 +138,7 @@ router.post('/', authenticateToken, (req, res) => {
       overlay_opacity || 50, text_alignment || 'left', theme || 'dark', nextOrder
     );
 
-    const created = db.prepare('SELECT * FROM website_sections WHERE id = ?').get(result.lastInsertRowid);
+    const created = await db.prepare('SELECT * FROM website_sections WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({ message: 'Section baru berhasil ditambahkan.', section: created });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -150,10 +146,10 @@ router.post('/', authenticateToken, (req, res) => {
 });
 
 // DELETE /api/sections/:id
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const section = db.prepare('SELECT * FROM website_sections WHERE id = ?').get(id);
+    const section = await db.prepare('SELECT * FROM website_sections WHERE id = ?').get(id);
     if (!section) {
       return res.status(404).json({ error: 'Section tidak ditemukan.' });
     }
@@ -166,7 +162,7 @@ router.delete('/:id', authenticateToken, (req, res) => {
       });
     }
 
-    db.prepare('DELETE FROM website_sections WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM website_sections WHERE id = ?').run(id);
     res.json({ message: 'Section berhasil dihapus.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
