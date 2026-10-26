@@ -22,3 +22,6 @@ server/data/*.db-shm
 Thumbs.db
 .vscode/
 .idea/
+scratch/
+server/data/turso-replica*
+

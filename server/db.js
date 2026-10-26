@@ -1,4 +1,5 @@
 const Database = require('better-sqlite3');
+const { createClient } = require('@libsql/client');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
@@ -15,6 +16,81 @@ const db = new Database(dbPath);
 // Enable WAL mode and foreign keys for high performance and integrity
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
+
+// Turso Cloud Client (if configured in .env or environment)
+const TURSO_URL = process.env.TURSO_DATABASE_URL;
+const TURSO_TOKEN = process.env.TURSO_AUTH_TOKEN;
+
+let tursoClient = null;
+if (TURSO_URL && TURSO_TOKEN) {
+  try {
+    tursoClient = createClient({
+      url: TURSO_URL,
+      authToken: TURSO_TOKEN
+    });
+    console.log('[Turso] Cloud Database Client Connected:', TURSO_URL);
+  } catch (err) {
+    console.error('[Turso] Failed to initialize Turso Client:', err.message);
+  }
+}
+
+// Intercept db.prepare to transparently sync all writes (INSERT/UPDATE/DELETE/REPLACE) to Turso Cloud in real time
+const originalPrepare = db.prepare.bind(db);
+db.prepare = function(sql) {
+  const stmt = originalPrepare(sql);
+  const originalRun = stmt.run.bind(stmt);
+  const isWrite = /^\s*(INSERT|UPDATE|DELETE|REPLACE)/i.test(sql);
+
+  stmt.run = function(...args) {
+    const res = originalRun(...args);
+    if (isWrite && tursoClient) {
+      tursoClient.execute({ sql, args: args.flat() }).catch(err => {
+        console.error('[Turso Sync Warning]', err.message);
+      });
+    }
+    return res;
+  };
+  return stmt;
+};
+
+// Sync data from Turso Cloud on startup to restore persistent records across restarts
+async function syncFromTurso() {
+  if (!tursoClient) return;
+  try {
+    const tables = [
+      'admin_users', 'site_settings', 'website_sections', 'website_pages',
+      'navigation_items', 'portfolio_categories', 'portfolio_projects',
+      'portfolio_images', 'services', 'service_packages', 'benefits',
+      'terms_content', 'faq_items', 'service_areas', 'inquiries',
+      'inquiry_notes', 'media_assets'
+    ];
+
+    const check = await tursoClient.execute('SELECT COUNT(*) as cnt FROM admin_users');
+    if (!check.rows || check.rows[0].cnt === 0) {
+      console.log('[Turso] Cloud database is empty or initial.');
+      return;
+    }
+
+    for (const table of tables) {
+      const res = await tursoClient.execute(`SELECT * FROM ${table}`);
+      if (!res.rows || res.rows.length === 0) continue;
+
+      const keys = Object.keys(res.rows[0]);
+      const placeholders = keys.map(() => '?').join(', ');
+      const insertStmt = originalPrepare(`INSERT OR REPLACE INTO ${table} (${keys.join(', ')}) VALUES (${placeholders})`);
+
+      const tx = db.transaction((rows) => {
+        for (const row of rows) {
+          insertStmt.run(Object.values(row));
+        }
+      });
+      tx(res.rows);
+    }
+    console.log('[Turso] Startup sync complete. Local cache restored from Turso Cloud.');
+  } catch (err) {
+    console.error('[Turso Sync Error on startup]', err.message);
+  }
+}
 
 // Initialize database schema
 function initDatabase() {
@@ -257,6 +333,9 @@ function initDatabase() {
   `);
 
   seedDefaultData();
+  if (tursoClient) {
+    syncFromTurso();
+  }
 }
 
 // Seed initial default data matching the AF Frame Catalog
