@@ -12,20 +12,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', brand: 'AF Frame', platform: 'Vercel Serverless', time: new Date().toISOString() });
 });
 
-// Debug endpoint to reveal any loading issue on Vercel
-app.get('/api/debug-routes', (req, res) => {
-  const status = {};
-  const routes = ['auth', 'media', 'settings', 'sections', 'portfolio', 'services', 'inquiries', 'content', 'dashboard'];
-  for (const r of routes) {
-    try {
-      require(`../server/routes/${r}`);
-      status[r] = 'OK';
-    } catch (e) {
-      status[r] = e.message + ' | ' + (e.stack || '');
-    }
-  }
-  res.json(status);
-});
 
 // Mount routes individually so one failing doesn't stop others
 const routeList = [
