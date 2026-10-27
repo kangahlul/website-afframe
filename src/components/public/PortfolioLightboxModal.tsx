@@ -21,16 +21,25 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
 }) => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<'video' | 'photo'>('video');
   const touchStartX = useRef<number | null>(null);
 
   const total = projects.length;
   const project = projects[currentIndex];
 
-  // Reset indices when project changes
+  // Reset indices and determine default view mode when project changes
   useEffect(() => {
     setSelectedPhotoIndex(0);
     setSelectedVideoIndex(0);
-  }, [currentIndex]);
+    if (!project) return;
+    if (project.media_type === 'photo') {
+      setViewMode('photo');
+    } else if (project.featured_video_url || (project.videos && project.videos.length > 0)) {
+      setViewMode('video');
+    } else {
+      setViewMode('photo');
+    }
+  }, [currentIndex, project]);
 
   const handlePrev = useCallback(() => {
     if (total <= 1) return;
@@ -103,7 +112,19 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
       : [];
 
   const hasVideos = projectVideos.length > 0;
-  const isVideoMode = project.media_type === 'video' || hasVideos;
+
+  // All photos for photo viewer
+  interface LightboxImageItem {
+    url: string;
+    caption?: string;
+  }
+  const allImages: LightboxImageItem[] = [
+    ...(project.cover_image_url ? [{ url: project.cover_image_url, caption: project.title }] : []),
+    ...(project.images ? project.images.map(img => ({ url: img.image_url, caption: img.caption || '' })) : [])
+  ].filter(item => Boolean(item.url));
+
+  const hasPhotos = allImages.length > 0;
+  const isVideoMode = (viewMode === 'video' && hasVideos) || (!hasPhotos && hasVideos);
 
   // Active video
   const activeVideo: PortfolioVideo | undefined = projectVideos[selectedVideoIndex] || projectVideos[0];
@@ -111,12 +132,8 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const isPortrait = (activeVideo?.orientation || project.orientation || 'portrait') === 'portrait';
   const embedUrl = activeVideoUrl ? getVideoEmbedUrl(activeVideoUrl) : null;
 
-  // All photos for photo viewer
-  const allImages = [
-    project.cover_image_url,
-    ...(project.images ? project.images.map(img => img.image_url) : [])
-  ].filter(Boolean);
-  const currentPhotoUrl = allImages[selectedPhotoIndex] || project.cover_image_url;
+  const currentPhoto = allImages[selectedPhotoIndex] || allImages[0];
+  const currentPhotoUrl = currentPhoto?.url || project.cover_image_url;
 
   const waConsultMessage = encodeURIComponent(
     `Halo AFFRAME, saya sangat tertarik melihat karya dokumentasi "${project.title}". Boleh konsultasi paket dokumentasi & ketersediaan jadwal serupa?`
@@ -147,17 +164,49 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
             </span>
           )}
 
-          {/* Media Format Badge */}
-          {isVideoMode ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[9px] sm:text-[10px] font-semibold shrink-0">
-              <Film className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-              <span>{isPortrait ? 'Reels 9:16' : 'Sinematik 16:9'}</span>
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 text-[9px] sm:text-[10px] font-semibold shrink-0">
-              <ImageIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-              <span>Foto</span>
-            </span>
+          {/* Switcher if both videos and photos exist */}
+          {hasVideos && hasPhotos && (
+            <div className="flex items-center gap-1 bg-black/70 p-0.5 rounded-full border border-zinc-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('video')}
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer ${
+                  viewMode === 'video'
+                    ? 'bg-amber-500 text-black shadow'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Film className="w-2.5 h-2.5" />
+                <span>Video ({projectVideos.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('photo')}
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer ${
+                  viewMode === 'photo'
+                    ? 'bg-[#C5A880] text-black shadow'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <ImageIcon className="w-2.5 h-2.5" />
+                <span>Foto ({allImages.length})</span>
+              </button>
+            </div>
+          )}
+
+          {/* Media Format Badge (if only 1 media type) */}
+          {(!hasVideos || !hasPhotos) && (
+            isVideoMode ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[9px] sm:text-[10px] font-semibold shrink-0">
+                <Film className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                <span>{isPortrait ? 'Reels 9:16' : 'Sinematik 16:9'}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 text-[9px] sm:text-[10px] font-semibold shrink-0">
+                <ImageIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                <span>Koleksi Foto</span>
+              </span>
+            )
           )}
         </div>
 
@@ -283,24 +332,33 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
             )
           ) : (
             /* ========================================================
-               PHOTO GALLERY VIEWER
+               PHOTO GALLERY VIEWER WITH KETERANGAN (CAPTION)
                ======================================================== */
             <div className="flex flex-col items-center justify-center h-full max-w-5xl w-full min-h-0">
               <div
                 className="relative flex items-center justify-center min-h-0"
-                style={{ height: allImages.length > 1 ? 'calc(100dvh - 210px)' : 'calc(100dvh - 160px)' }}
+                style={{ height: allImages.length > 1 ? 'calc(100dvh - 230px)' : 'calc(100dvh - 170px)' }}
               >
                 <img
                   src={normalizeMediaUrl(currentPhotoUrl)}
-                  alt={project.title}
+                  alt={currentPhoto?.caption || project.title}
                   className="max-h-full max-w-full object-contain rounded-lg border border-zinc-800 shadow-2xl"
                 />
               </div>
 
+              {/* Photo Caption / Keterangan Tag */}
+              {currentPhoto?.caption && (
+                <div className="mt-2 text-center max-w-lg truncate px-2 shrink-0">
+                  <span className="text-[11px] sm:text-xs text-[#E2D2BC] bg-[#141418]/90 px-3 py-1 rounded-full border border-[#C5A880]/30 shadow-md inline-block font-sans">
+                    📸 {currentPhoto.caption}
+                  </span>
+                </div>
+              )}
+
               {/* Multi-Photo Thumbnail Strip */}
               {allImages.length > 1 && (
                 <div className="flex items-center gap-1.5 mt-2 overflow-x-auto max-w-full px-2 py-1 scrollbar-none shrink-0">
-                  {allImages.map((imgUrl, idx) => (
+                  {allImages.map((img, idx) => (
                     <button
                       key={idx}
                       onClick={() => setSelectedPhotoIndex(idx)}
@@ -309,8 +367,9 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                           ? 'border-[#C5A880] ring-2 ring-[#C5A880]/50 scale-105'
                           : 'border-zinc-800 opacity-60 hover:opacity-100'
                       }`}
+                      title={img.caption || `Foto ${idx + 1}`}
                     >
-                      <img src={normalizeMediaUrl(imgUrl)} alt="" className="w-full h-full object-cover" />
+                      <img src={normalizeMediaUrl(img.url)} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
