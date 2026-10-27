@@ -560,30 +560,37 @@ export const PortfolioManager: React.FC = () => {
       {/* Add / Edit Project Full Modal */}
       {showModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto"
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto"
           onClick={() => setShowModal(false)}
         >
-          <div
-            className="bg-[#141418] border border-zinc-800 max-w-4xl w-full rounded-sm p-6 space-y-6 my-8 shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between pb-3 border-b border-zinc-800">
-              <div>
-                <h3 className="font-serif text-xl text-white">
-                  {editingId ? 'Edit Keterangan, Narasi & Media Acara' : 'Tambah Acara Portofolio Baru'}
-                </h3>
-                <p className="text-xs text-zinc-400 mt-1">
-                  {editingId
-                    ? 'Kelola judul acara, narasi kegiatan, deskripsi singkat, kategori, klien, tanggal, lokasi, serta video & foto dokumentasi.'
-                    : 'Isi informasi acara, narasi kegiatan, dan unggah dokumentasi foto/video untuk ditampilkan di portofolio.'}
-                </p>
+          <div className="min-h-full flex items-start justify-center p-3 sm:p-6 md:p-8">
+            <div
+              className="bg-[#141418] border border-zinc-800 max-w-4xl w-full rounded-md shadow-2xl relative my-auto sm:my-6 overflow-hidden flex flex-col"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Sticky Top Header Bar */}
+              <div className="sticky top-0 z-30 bg-[#141418]/95 backdrop-blur-md px-5 sm:px-8 py-4 border-b border-zinc-800 flex items-start justify-between">
+                <div>
+                  <h3 className="font-serif text-lg sm:text-xl text-white font-medium">
+                    {editingId ? 'Edit Keterangan, Narasi & Media Acara' : 'Tambah Acara Portofolio Baru'}
+                  </h3>
+                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-1">
+                    {editingId
+                      ? 'Kelola judul acara, narasi kegiatan, deskripsi singkat, kategori, klien, tanggal, lokasi, serta video & foto dokumentasi.'
+                      : 'Isi informasi acara, narasi kegiatan, dan unggah dokumentasi foto/video untuk ditampilkan di portofolio.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="text-zinc-400 hover:text-white p-1.5 rounded-full hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 ml-4"
+                  title="Tutup (Esc)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <button onClick={() => setShowModal(false)} className="text-zinc-500 hover:text-white p-1 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <form onSubmit={handleSave} className="space-y-5 text-xs">
+              <form onSubmit={handleSave} className="p-5 sm:p-8 space-y-6 text-xs">
               {/* Row 1: Title & Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -998,27 +1005,33 @@ export const PortfolioManager: React.FC = () => {
                 </label>
               </div>
 
-              {/* Actions */}
-              <div className="pt-4 flex justify-end gap-2 border-t border-zinc-800">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-zinc-700 text-zinc-300 rounded text-xs cursor-pointer hover:bg-zinc-800 transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-6 py-2 bg-[#C5A880] hover:bg-[#B39366] text-[#0C0C0D] font-bold rounded text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-md"
-                >
-                  {isSaving ? 'Menyimpan...' : (editingId ? 'Simpan Perubahan Acara' : 'Simpan Acara Baru')}
-                </button>
+              {/* Sticky Actions Footer */}
+              <div className="sticky bottom-0 z-30 bg-[#141418]/95 backdrop-blur-md -mx-5 sm:-mx-8 -mb-5 sm:-mb-8 px-5 sm:px-8 py-3.5 border-t border-zinc-800 flex items-center justify-between gap-3">
+                <span className="text-[11px] text-zinc-500 font-mono hidden sm:inline">
+                  {editingId ? `Mengedit ID #${editingId}` : 'Acara Baru'}
+                </span>
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 border border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded text-xs transition-colors cursor-pointer font-medium"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="px-6 py-2 bg-[#C5A880] hover:bg-[#B39366] text-[#0C0C0D] font-bold rounded text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-md"
+                  >
+                    {isSaving ? 'Menyimpan...' : (editingId ? 'Simpan Perubahan Acara' : 'Simpan Acara Baru')}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
     </div>
   );

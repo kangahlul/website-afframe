@@ -142,7 +142,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
     >
       {/* Top Header Bar */}
       <div
-        className="w-full flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 z-30 bg-gradient-to-b from-black via-black/80 to-transparent shrink-0"
+        className="w-full flex items-center justify-between px-3 sm:px-6 pt-3.5 pb-2.5 sm:py-3.5 z-30 bg-black/90 sm:bg-gradient-to-b sm:from-black sm:via-black/80 sm:to-transparent border-b border-zinc-800/40 sm:border-b-0 shrink-0"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 flex-wrap min-w-0">
@@ -268,8 +268,8 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
               <div
                 className="relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 flex items-center justify-center max-w-[90vw]"
                 style={{
-                  height: 'calc(100dvh - 160px)',
-                  maxHeight: '580px',
+                  height: (isVideoMode && projectVideos.length > 1) ? 'calc(100dvh - 205px)' : 'calc(100dvh - 165px)',
+                  maxHeight: '560px',
                   aspectRatio: '9/16',
                 }}
               >
