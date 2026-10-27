@@ -103,6 +103,8 @@ export interface PortfolioProject {
   location: string;
   cover_image_url: string;
   featured_video_url: string;
+  media_type?: 'photo' | 'video';
+  orientation?: 'portrait' | 'landscape' | 'square';
   is_featured: number;
   is_published: number;
   sort_order: number;

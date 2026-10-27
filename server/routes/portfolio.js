@@ -115,7 +115,7 @@ router.delete('/categories/:id', authenticateToken, async (req, res) => {
 // GET /api/portfolio/projects (public & admin)
 router.get('/projects', async (req, res) => {
   try {
-    const { category, featured, search, all, limit = 50, page = 1 } = req.query;
+    const { category, featured, search, all, limit = 50, page = 1, media_type } = req.query;
     let query = `
       SELECT pp.*, pc.name as category_name, pc.slug as category_slug
       FROM portfolio_projects pp
@@ -130,6 +130,11 @@ router.get('/projects', async (req, res) => {
 
     if (featured === '1' || featured === 'true') {
       query += ' AND pp.is_featured = 1';
+    }
+
+    if (media_type && media_type !== 'all') {
+      query += ' AND pp.media_type = ?';
+      params.push(media_type);
     }
 
     if (category && category !== 'all') {
@@ -206,6 +211,7 @@ router.post('/projects', authenticateToken, async (req, res) => {
     const {
       category_id, title, slug, short_description, full_description,
       client_name, project_date, location, cover_image_url, featured_video_url,
+      media_type, orientation,
       is_featured, is_published, sort_order, seo_title, seo_description,
       gallery_images
     } = req.body;
@@ -223,18 +229,24 @@ router.post('/projects', authenticateToken, async (req, res) => {
     const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM portfolio_projects').get();
     const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.m || 0) + 1;
 
+    // Detect media_type and orientation if not explicitly provided
+    const finalMediaType = media_type || (featured_video_url && featured_video_url.trim() ? 'video' : 'photo');
+    const finalOrientation = orientation || 'portrait';
+
     const insertProj = db.prepare(`
       INSERT INTO portfolio_projects (
         category_id, title, slug, short_description, full_description,
         client_name, project_date, location, cover_image_url, featured_video_url,
+        media_type, orientation,
         is_featured, is_published, sort_order, seo_title, seo_description
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = await insertProj.run(
       category_id || null, title, finalSlug, short_description || '', full_description || '',
       client_name || '', project_date || '', location || '',
       cover_image_url || '', featured_video_url || '',
+      finalMediaType, finalOrientation,
       is_featured ? 1 : 0, is_published !== undefined ? (is_published ? 1 : 0) : 1,
       nextOrder, seo_title || `${title} — AFFRAME Portfolio`, seo_description || short_description || ''
     );
@@ -274,6 +286,7 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
     const {
       category_id, title, slug, short_description, full_description,
       client_name, project_date, location, cover_image_url, featured_video_url,
+      media_type, orientation,
       is_featured, is_published, sort_order, seo_title, seo_description,
       gallery_images
     } = req.body;
@@ -291,6 +304,12 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
       }
     }
 
+    // Determine media_type if auto-updated
+    let finalMediaType = media_type;
+    if (!finalMediaType && featured_video_url && featured_video_url.trim() && current.media_type !== 'video') {
+      finalMediaType = 'video';
+    }
+
     await db.prepare(`
       UPDATE portfolio_projects
       SET category_id = ?,
@@ -303,6 +322,8 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
           location = COALESCE(?, location),
           cover_image_url = COALESCE(?, cover_image_url),
           featured_video_url = COALESCE(?, featured_video_url),
+          media_type = COALESCE(?, media_type),
+          orientation = COALESCE(?, orientation),
           is_featured = COALESCE(?, is_featured),
           is_published = COALESCE(?, is_published),
           sort_order = COALESCE(?, sort_order),
@@ -314,10 +335,12 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
       category_id !== undefined ? category_id : current.category_id,
       title, finalSlug, short_description, full_description,
       client_name, project_date, location, cover_image_url, featured_video_url,
+      finalMediaType, orientation,
       is_featured !== undefined ? (is_featured ? 1 : 0) : current.is_featured,
       is_published !== undefined ? (is_published ? 1 : 0) : current.is_published,
       sort_order !== undefined ? sort_order : current.sort_order,
       seo_title, seo_description, id
+    );
     );
 
     // If gallery_images array is provided, replace gallery images

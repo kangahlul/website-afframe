@@ -132,8 +132,17 @@ export const ProjectDetailPage: React.FC = () => {
             {/* Featured Video Player if available */}
             {project.featured_video_url && (
               <div className="mb-16">
-                <h3 className="font-serif text-2xl text-[#F8F6F0] mb-4">Cinematic Video Showcase</h3>
-                <div className="aspect-video w-full rounded-sm overflow-hidden bg-black border border-zinc-800">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-2 h-2 rounded-full bg-[#C5A880]" />
+                  <h3 className="font-serif text-2xl text-[#F8F6F0]">
+                    {project.orientation === 'portrait' ? 'Reels & Vertical Video Showcase (9:16)' : 'Cinematic Video Showcase'}
+                  </h3>
+                </div>
+                <div className={`rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl ${
+                  project.orientation === 'portrait'
+                    ? 'w-full max-w-[320px] sm:max-w-[370px] aspect-[9/16] mx-auto border-2 border-[#C5A880]/40'
+                    : 'w-full aspect-video'
+                }`}>
                   {getVideoEmbedUrl(project.featured_video_url) ? (
                     <iframe
                       src={getVideoEmbedUrl(project.featured_video_url)!}
@@ -143,7 +152,7 @@ export const ProjectDetailPage: React.FC = () => {
                       allowFullScreen
                     />
                   ) : (
-                    <video src={project.featured_video_url} controls playsInline className="w-full h-full object-contain" />
+                    <video src={project.featured_video_url} controls playsInline loop className="w-full h-full object-cover" />
                   )}
                 </div>
               </div>
