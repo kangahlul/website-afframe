@@ -341,7 +341,6 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
       sort_order !== undefined ? sort_order : current.sort_order,
       seo_title, seo_description, id
     );
-    );
 
     // If gallery_images array is provided, replace gallery images
     if (Array.isArray(gallery_images)) {
