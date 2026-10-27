@@ -21,7 +21,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
 }) => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState<number>(0);
-  const [viewMode, setViewMode] = useState<'video' | 'photo'>('video');
+  const [activeMediaMode, setActiveMediaMode] = useState<'video' | 'photo'>('video');
   const touchStartX = useRef<number | null>(null);
 
   const total = projects.length;
@@ -33,11 +33,11 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
     setSelectedVideoIndex(0);
     if (!project) return;
     if (project.media_type === 'photo') {
-      setViewMode('photo');
-    } else if (project.featured_video_url || (project.videos && project.videos.length > 0)) {
-      setViewMode('video');
+      setActiveMediaMode('photo');
+    } else if (project.media_type === 'video') {
+      setActiveMediaMode('video');
     } else {
-      setViewMode('photo');
+      setActiveMediaMode(project.featured_video_url ? 'video' : 'photo');
     }
   }, [currentIndex, project]);
 
@@ -111,20 +111,15 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
       ? [{ title: 'Video Utama', video_url: project.featured_video_url, orientation: project.orientation || 'portrait' }]
       : [];
 
-  const hasVideos = projectVideos.length > 0;
-
   // All photos for photo viewer
-  interface LightboxImageItem {
-    url: string;
-    caption?: string;
-  }
-  const allImages: LightboxImageItem[] = [
-    ...(project.cover_image_url ? [{ url: project.cover_image_url, caption: project.title }] : []),
-    ...(project.images ? project.images.map(img => ({ url: img.image_url, caption: img.caption || '' })) : [])
-  ].filter(item => Boolean(item.url));
+  const allImages = [
+    project.cover_image_url,
+    ...(project.images ? project.images.map(img => img.image_url) : [])
+  ].filter(Boolean);
 
+  const hasVideos = projectVideos.length > 0;
   const hasPhotos = allImages.length > 0;
-  const isVideoMode = (viewMode === 'video' && hasVideos) || (!hasPhotos && hasVideos);
+  const isVideoMode = (activeMediaMode === 'video' && hasVideos) || (!hasPhotos && hasVideos);
 
   // Active video
   const activeVideo: PortfolioVideo | undefined = projectVideos[selectedVideoIndex] || projectVideos[0];
@@ -132,8 +127,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const isPortrait = (activeVideo?.orientation || project.orientation || 'portrait') === 'portrait';
   const embedUrl = activeVideoUrl ? getVideoEmbedUrl(activeVideoUrl) : null;
 
-  const currentPhoto = allImages[selectedPhotoIndex] || allImages[0];
-  const currentPhotoUrl = currentPhoto?.url || project.cover_image_url;
+  const currentPhotoUrl = allImages[selectedPhotoIndex] || project.cover_image_url;
 
   const waConsultMessage = encodeURIComponent(
     `Halo AFFRAME, saya sangat tertarik melihat karya dokumentasi "${project.title}". Boleh konsultasi paket dokumentasi & ketersediaan jadwal serupa?`
@@ -164,14 +158,14 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
             </span>
           )}
 
-          {/* Switcher if both videos and photos exist */}
+          {/* Switcher if project has both videos and photos */}
           {hasVideos && hasPhotos && (
-            <div className="flex items-center gap-1 bg-black/70 p-0.5 rounded-full border border-zinc-800 shrink-0">
+            <div className="flex items-center gap-1 bg-black/80 p-0.5 rounded-full border border-zinc-800 shrink-0">
               <button
                 type="button"
-                onClick={() => setViewMode('video')}
+                onClick={() => setActiveMediaMode('video')}
                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer ${
-                  viewMode === 'video'
+                  isVideoMode
                     ? 'bg-amber-500 text-black shadow'
                     : 'text-zinc-400 hover:text-white'
                 }`}
@@ -181,9 +175,9 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setViewMode('photo')}
+                onClick={() => setActiveMediaMode('photo')}
                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer ${
-                  viewMode === 'photo'
+                  !isVideoMode
                     ? 'bg-[#C5A880] text-black shadow'
                     : 'text-zinc-400 hover:text-white'
                 }`}
@@ -204,7 +198,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
             ) : (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 text-[9px] sm:text-[10px] font-semibold shrink-0">
                 <ImageIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                <span>Koleksi Foto</span>
+                <span>Foto ({allImages.length})</span>
               </span>
             )
           )}
@@ -332,33 +326,24 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
             )
           ) : (
             /* ========================================================
-               PHOTO GALLERY VIEWER WITH KETERANGAN (CAPTION)
+               PHOTO GALLERY VIEWER
                ======================================================== */
             <div className="flex flex-col items-center justify-center h-full max-w-5xl w-full min-h-0">
               <div
                 className="relative flex items-center justify-center min-h-0"
-                style={{ height: allImages.length > 1 ? 'calc(100dvh - 230px)' : 'calc(100dvh - 170px)' }}
+                style={{ height: allImages.length > 1 ? 'calc(100dvh - 210px)' : 'calc(100dvh - 160px)' }}
               >
                 <img
                   src={normalizeMediaUrl(currentPhotoUrl)}
-                  alt={currentPhoto?.caption || project.title}
+                  alt={project.title}
                   className="max-h-full max-w-full object-contain rounded-lg border border-zinc-800 shadow-2xl"
                 />
               </div>
 
-              {/* Photo Caption / Keterangan Tag */}
-              {currentPhoto?.caption && (
-                <div className="mt-2 text-center max-w-lg truncate px-2 shrink-0">
-                  <span className="text-[11px] sm:text-xs text-[#E2D2BC] bg-[#141418]/90 px-3 py-1 rounded-full border border-[#C5A880]/30 shadow-md inline-block font-sans">
-                    📸 {currentPhoto.caption}
-                  </span>
-                </div>
-              )}
-
               {/* Multi-Photo Thumbnail Strip */}
               {allImages.length > 1 && (
                 <div className="flex items-center gap-1.5 mt-2 overflow-x-auto max-w-full px-2 py-1 scrollbar-none shrink-0">
-                  {allImages.map((img, idx) => (
+                  {allImages.map((imgUrl, idx) => (
                     <button
                       key={idx}
                       onClick={() => setSelectedPhotoIndex(idx)}
@@ -367,9 +352,8 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                           ? 'border-[#C5A880] ring-2 ring-[#C5A880]/50 scale-105'
                           : 'border-zinc-800 opacity-60 hover:opacity-100'
                       }`}
-                      title={img.caption || `Foto ${idx + 1}`}
                     >
-                      <img src={normalizeMediaUrl(img.url)} alt="" className="w-full h-full object-cover" />
+                      <img src={normalizeMediaUrl(imgUrl)} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
