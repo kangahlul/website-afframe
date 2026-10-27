@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowDown, ArrowUpRight, Play, Sparkles } from 'lucide-react';
 import { WebsiteSection } from '../../types';
-import { normalizeMediaUrl, getVideoEmbedUrl } from '../../lib/mediaUtils';
+import { normalizeMediaUrl, getVideoEmbedUrl, getDirectVideoUrl } from '../../lib/mediaUtils';
 
 interface HeroSectionProps {
   section?: WebsiteSection;
@@ -56,7 +56,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ section }) => {
               className="w-full h-full object-cover"
               poster="https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2070&auto=format&fit=crop"
             >
-              <source src={bgUrl} type="video/mp4" />
+              <source src={getDirectVideoUrl(bgUrl)} type="video/mp4" />
+              <source src={getDirectVideoUrl(bgUrl)} />
             </video>
           )
         ) : (

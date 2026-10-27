@@ -5,7 +5,13 @@ import { Footer } from '../../components/public/Footer';
 import { ArrowLeft, Calendar, MapPin, User, Eye, Play, ArrowUpRight, X } from 'lucide-react';
 import { PortfolioProject } from '../../types';
 import { api } from '../../lib/api';
-import { getVideoEmbedUrl, normalizeMediaUrl } from '../../lib/mediaUtils';
+import {
+  getVideoEmbedUrl,
+  normalizeMediaUrl,
+  getDirectVideoUrl,
+  isGoogleDriveUrl,
+  getGoogleDrivePreviewUrl,
+} from '../../lib/mediaUtils';
 
 export const ProjectDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -145,6 +151,9 @@ export const ProjectDetailPage: React.FC = () => {
                     : [{ title: 'Video Utama', video_url: project.featured_video_url, orientation: project.orientation || 'portrait' }]
                   ).map((vid, idx) => {
                     const isPortrait = vid.orientation === 'portrait';
+                    const isDrive = isGoogleDriveUrl(vid.video_url);
+                    const embedUrl = isDrive ? null : getVideoEmbedUrl(vid.video_url);
+                    const directUrl = getDirectVideoUrl(vid.video_url);
                     return (
                       <div key={idx} className="space-y-3">
                         <div className="flex items-center gap-2">
@@ -156,21 +165,31 @@ export const ProjectDetailPage: React.FC = () => {
                           </h4>
                         </div>
 
-                        <div className={`rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl ${
+                        <div className={`rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl flex items-center justify-center ${
                           isPortrait
                             ? 'w-full max-w-[320px] sm:max-w-[370px] aspect-[9/16] mx-auto border-2 border-[#C5A880]/40'
-                            : 'w-full aspect-video'
+                            : 'w-full max-w-4xl mx-auto aspect-video'
                         }`}>
-                          {getVideoEmbedUrl(vid.video_url) ? (
+                          {embedUrl ? (
                             <iframe
-                              src={getVideoEmbedUrl(vid.video_url)!}
+                              src={embedUrl}
                               title={vid.title || project.title}
                               className={`w-full h-full ${isPortrait ? 'object-cover' : 'object-contain'}`}
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                               allowFullScreen
                             />
                           ) : (
-                            <video src={vid.video_url} controls playsInline loop className={`w-full h-full ${isPortrait ? 'object-cover' : 'object-contain'}`} />
+                            <video
+                              src={directUrl}
+                              controls
+                              playsInline
+                              loop
+                              className={`w-full h-full ${isPortrait ? 'object-cover' : 'object-contain'}`}
+                              style={{ objectPosition: 'center center' }}
+                            >
+                              <source src={directUrl} type="video/mp4" />
+                              <source src={directUrl} />
+                            </video>
                           )}
                         </div>
                       </div>

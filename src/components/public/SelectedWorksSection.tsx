@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight, Play, Eye, ChevronLeft, ChevronRight, Film, Image as ImageIcon, SlidersHorizontal, LayoutGrid } from 'lucide-react';
 import { PortfolioProject, PortfolioCategory, WebsiteSection } from '../../types';
 import { api } from '../../lib/api';
-import { normalizeMediaUrl } from '../../lib/mediaUtils';
+import { normalizeMediaUrl, getDirectVideoUrl, isGoogleDriveUrl } from '../../lib/mediaUtils';
 import { PortfolioLightboxModal } from './PortfolioLightboxModal';
 
 interface SelectedWorksSectionProps {
@@ -255,7 +255,8 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                 const isDirectVideo = isVideo && project.featured_video_url && (
                   project.featured_video_url.endsWith('.mp4') ||
                   project.featured_video_url.endsWith('.webm') ||
-                  project.featured_video_url.includes('/uploads/')
+                  project.featured_video_url.includes('/uploads/') ||
+                  isGoogleDriveUrl(project.featured_video_url)
                 );
 
                 return (
@@ -277,7 +278,7 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                       {/* Direct Video Auto-Preview on Hover */}
                       {isDirectVideo && isHovered ? (
                         <video
-                          src={project.featured_video_url}
+                          src={getDirectVideoUrl(project.featured_video_url)}
                           autoPlay
                           muted
                           loop

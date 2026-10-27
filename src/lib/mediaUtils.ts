@@ -15,13 +15,61 @@ export function normalizeMediaUrl(url: string | null | undefined): string {
   }
 
   if (trimmed.includes('drive.google.com/open?id=')) {
-    const match = trimmed.match(/id=([a-zA-Z0-9_-]+)/);
+    const match = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
     if (match && match[1]) {
       return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1920`;
     }
   }
 
   return trimmed;
+}
+
+/**
+ * Extract Google Drive file ID from various link formats:
+ * - https://drive.google.com/file/d/ID/view...
+ * - https://drive.google.com/open?id=ID
+ * - https://drive.google.com/uc?id=ID
+ * - https://drive.usercontent.google.com/download?id=ID
+ */
+export function getGoogleDriveFileId(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  const fileDMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileDMatch && fileDMatch[1]) return fileDMatch[1];
+
+  const idParamMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idParamMatch && idParamMatch[1]) return idParamMatch[1];
+
+  return null;
+}
+
+export function isGoogleDriveUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return url.includes('drive.google.com') || url.includes('drive.usercontent.google.com');
+}
+
+/**
+ * Returns a direct media streaming URL for HTML5 <video> / <img>.
+ * For Google Drive files, returns https://drive.usercontent.google.com/download?id=ID
+ * which supports CORS, range headers (HTTP 206 Partial Content), and direct browser playback.
+ */
+export function getDirectVideoUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  const driveId = getGoogleDriveFileId(trimmed);
+  if (driveId) {
+    return `https://drive.usercontent.google.com/download?id=${driveId}`;
+  }
+  return trimmed;
+}
+
+/**
+ * Returns Google Drive web preview URL (for iframe fallback if direct streaming fails).
+ */
+export function getGoogleDrivePreviewUrl(url: string | null | undefined): string | null {
+  const driveId = getGoogleDriveFileId(url);
+  if (!driveId) return null;
+  return `https://drive.google.com/file/d/${driveId}/preview`;
 }
 
 export function isVideoUrl(url: string | null | undefined): boolean {
@@ -39,6 +87,12 @@ export function isVideoUrl(url: string | null | undefined): boolean {
   );
 }
 
+/**
+ * Returns iframe embed URL ONLY for external embed services (YouTube, Vimeo).
+ * NOTE: Google Drive is intentionally NOT returned here, because Google Drive's
+ * preview iframe layout is fixed desktop 16:9 and causes clipping / off-center right shift in 9:16 containers.
+ * Google Drive videos should be played via HTML5 <video src={getDirectVideoUrl(url)}> instead!
+ */
 export function getVideoEmbedUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   const trimmed = url.trim();
@@ -77,21 +131,6 @@ export function getVideoEmbedUrl(url: string | null | undefined): string | null 
     const match = trimmed.match(/vimeo\.com\/([0-9]+)/);
     if (match && match[1]) {
       return `https://player.vimeo.com/video/${match[1]}?autoplay=1`;
-    }
-  }
-
-  // Google Drive video preview (can be played in iframe): https://drive.google.com/file/d/ID/preview
-  if (trimmed.includes('drive.google.com/file/d/')) {
-    const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/file/d/${match[1]}/preview`;
-    }
-  }
-
-  if (trimmed.includes('drive.google.com/open?id=')) {
-    const match = trimmed.match(/id=([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/file/d/${match[1]}/preview`;
     }
   }
 
@@ -137,4 +176,3 @@ export function getDynamicFaviconUrl(settings: {
 
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
-

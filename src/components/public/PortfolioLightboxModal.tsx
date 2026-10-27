@@ -2,7 +2,13 @@ import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { X, ChevronLeft, ChevronRight, Film, Image as ImageIcon, MessageCircle, ExternalLink, Play } from 'lucide-react';
 import { PortfolioProject, PortfolioVideo } from '../../types';
-import { getVideoEmbedUrl, normalizeMediaUrl } from '../../lib/mediaUtils';
+import {
+  getVideoEmbedUrl,
+  normalizeMediaUrl,
+  getDirectVideoUrl,
+  isGoogleDriveUrl,
+  getGoogleDrivePreviewUrl,
+} from '../../lib/mediaUtils';
 
 interface PortfolioLightboxModalProps {
   projects: PortfolioProject[];
@@ -22,6 +28,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState<number>(0);
   const [activeMediaMode, setActiveMediaMode] = useState<'video' | 'photo'>('video');
+  const [videoError, setVideoError] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
   const total = projects.length;
@@ -31,6 +38,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   useEffect(() => {
     setSelectedPhotoIndex(0);
     setSelectedVideoIndex(0);
+    setVideoError(false);
     if (!project) return;
     if (project.media_type === 'photo') {
       setActiveMediaMode('photo');
@@ -125,7 +133,15 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const activeVideo: PortfolioVideo | undefined = projectVideos[selectedVideoIndex] || projectVideos[0];
   const activeVideoUrl = activeVideo?.video_url || '';
   const isPortrait = (activeVideo?.orientation || project.orientation || 'portrait') === 'portrait';
-  const embedUrl = activeVideoUrl ? getVideoEmbedUrl(activeVideoUrl) : null;
+  const isDriveVideo = isGoogleDriveUrl(activeVideoUrl);
+  const directVideoUrl = getDirectVideoUrl(activeVideoUrl);
+  const embedUrl = isDriveVideo ? null : getVideoEmbedUrl(activeVideoUrl);
+  const driveFallbackUrl = isDriveVideo ? getGoogleDrivePreviewUrl(activeVideoUrl) : null;
+
+  // Reset video error when switching video tabs
+  useEffect(() => {
+    setVideoError(false);
+  }, [selectedVideoIndex, activeVideoUrl]);
 
   const currentPhotoUrl = allImages[selectedPhotoIndex] || project.cover_image_url;
 
@@ -285,15 +301,43 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
-                ) : (
+                ) : !videoError ? (
                   <video
-                    src={activeVideoUrl}
+                    key={directVideoUrl}
+                    src={directVideoUrl}
                     controls
                     autoPlay
                     playsInline
                     loop
+                    onError={() => setVideoError(true)}
                     className="w-full h-full object-cover"
+                    style={{ objectPosition: 'center center' }}
+                  >
+                    <source src={directVideoUrl} type="video/mp4" />
+                    <source src={directVideoUrl} />
+                  </video>
+                ) : driveFallbackUrl ? (
+                  <iframe
+                    src={driveFallbackUrl}
+                    title={activeVideo?.title || project.title}
+                    className="w-full h-full object-contain"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
                   />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-6 text-center text-zinc-400 text-xs">
+                    <p className="mb-2">Video tidak dapat dimuat langsung.</p>
+                    {activeVideoUrl && (
+                      <a
+                        href={activeVideoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded bg-[#C5A880] text-black font-semibold text-xs"
+                      >
+                        Buka Video di Tab Baru
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
             ) : (
@@ -316,14 +360,42 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
-                ) : (
+                ) : !videoError ? (
                   <video
-                    src={activeVideoUrl}
+                    key={directVideoUrl}
+                    src={directVideoUrl}
                     controls
                     autoPlay
                     playsInline
+                    onError={() => setVideoError(true)}
                     className="w-full h-full object-contain"
+                    style={{ objectPosition: 'center center' }}
+                  >
+                    <source src={directVideoUrl} type="video/mp4" />
+                    <source src={directVideoUrl} />
+                  </video>
+                ) : driveFallbackUrl ? (
+                  <iframe
+                    src={driveFallbackUrl}
+                    title={activeVideo?.title || project.title}
+                    className="w-full h-full object-contain"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
                   />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-6 text-center text-zinc-400 text-xs">
+                    <p className="mb-2">Video tidak dapat dimuat langsung.</p>
+                    {activeVideoUrl && (
+                      <a
+                        href={activeVideoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded bg-[#C5A880] text-black font-semibold text-xs"
+                      >
+                        Buka Video di Tab Baru
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
             )

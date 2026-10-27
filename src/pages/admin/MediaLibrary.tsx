@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { MediaAsset } from '../../types';
 import { api } from '../../lib/api';
-import { normalizeMediaUrl, getVideoEmbedUrl, isVideoUrl } from '../../lib/mediaUtils';
+import { normalizeMediaUrl, getVideoEmbedUrl, isVideoUrl, getDirectVideoUrl } from '../../lib/mediaUtils';
 
 export const MediaLibrary: React.FC = () => {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
@@ -535,8 +535,8 @@ export const MediaLibrary: React.FC = () => {
                         className="w-full h-full"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       />
-                    ) : isVideoUrl(extUrl) ? (
-                      <video src={extUrl} controls className="w-full h-full object-contain" />
+                    ) : (isVideoUrl(extUrl) || extCategory === 'video') ? (
+                      <video src={getDirectVideoUrl(extUrl)} controls className="w-full h-full object-contain" />
                     ) : (
                       <img
                         src={normalizeMediaUrl(extUrl)}

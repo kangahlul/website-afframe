@@ -6,7 +6,7 @@ import {
 import { WebsiteSection } from '../../types';
 import { api } from '../../lib/api';
 import { useSite } from '../../context/SiteContext';
-import { normalizeMediaUrl, isVideoUrl, getVideoEmbedUrl } from '../../lib/mediaUtils';
+import { normalizeMediaUrl, isVideoUrl, getVideoEmbedUrl, getDirectVideoUrl } from '../../lib/mediaUtils';
 
 export const WebsiteSectionManager: React.FC = () => {
   const { refreshSiteData } = useSite();
@@ -471,7 +471,7 @@ export const WebsiteSectionManager: React.FC = () => {
                           className="w-full h-full pointer-events-none"
                         />
                       ) : (
-                        <video src={formBgUrl} controls className="w-full h-full object-cover" />
+                        <video src={getDirectVideoUrl(formBgUrl)} controls className="w-full h-full object-cover" />
                       )
                     ) : (
                       <img src={formBgUrl} alt="Background Preview" className="w-full h-full object-cover" />
