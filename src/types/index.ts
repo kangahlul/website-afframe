@@ -89,6 +89,16 @@ export interface PortfolioImage {
   sort_order?: number;
 }
 
+export interface PortfolioVideo {
+  id?: number;
+  project_id?: number;
+  title?: string;
+  video_url: string;
+  orientation?: 'portrait' | 'landscape' | 'square';
+  sort_order?: number;
+  created_at?: string;
+}
+
 export interface PortfolioProject {
   id: number;
   category_id?: number | null;
@@ -111,6 +121,7 @@ export interface PortfolioProject {
   seo_title: string;
   seo_description: string;
   images?: PortfolioImage[];
+  videos?: PortfolioVideo[];
   created_at: string;
   updated_at: string;
 }

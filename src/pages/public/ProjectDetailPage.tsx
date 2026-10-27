@@ -129,31 +129,53 @@ export const ProjectDetailPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Featured Video Player if available */}
-            {project.featured_video_url && (
-              <div className="mb-16">
-                <div className="flex items-center gap-2 mb-4">
+            {/* Video Showcase (Supports Multiple Videos per Event) */}
+            {((project.videos && project.videos.length > 0) || project.featured_video_url) && (
+              <div className="mb-16 space-y-6">
+                <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#C5A880]" />
                   <h3 className="font-serif text-2xl text-[#F8F6F0]">
-                    {project.orientation === 'portrait' ? 'Reels & Vertical Video Showcase (9:16)' : 'Cinematic Video Showcase'}
+                    Video Dokumentasi & Sinematik Acara
                   </h3>
                 </div>
-                <div className={`rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl ${
-                  project.orientation === 'portrait'
-                    ? 'w-full max-w-[320px] sm:max-w-[370px] aspect-[9/16] mx-auto border-2 border-[#C5A880]/40'
-                    : 'w-full aspect-video'
-                }`}>
-                  {getVideoEmbedUrl(project.featured_video_url) ? (
-                    <iframe
-                      src={getVideoEmbedUrl(project.featured_video_url)!}
-                      title="Project Cinematic Video"
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <video src={project.featured_video_url} controls playsInline loop className="w-full h-full object-cover" />
-                  )}
+
+                <div className="space-y-8">
+                  {((project.videos && project.videos.length > 0)
+                    ? project.videos
+                    : [{ title: 'Video Utama', video_url: project.featured_video_url, orientation: project.orientation || 'portrait' }]
+                  ).map((vid, idx) => {
+                    const isPortrait = vid.orientation === 'portrait';
+                    return (
+                      <div key={idx} className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                            {isPortrait ? 'Reels 9:16' : 'Sinematik 16:9'}
+                          </span>
+                          <h4 className="font-medium text-white text-sm">
+                            {vid.title || `Video ${idx + 1}`}
+                          </h4>
+                        </div>
+
+                        <div className={`rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl ${
+                          isPortrait
+                            ? 'w-full max-w-[320px] sm:max-w-[370px] aspect-[9/16] mx-auto border-2 border-[#C5A880]/40'
+                            : 'w-full aspect-video'
+                        }`}>
+                          {getVideoEmbedUrl(vid.video_url) ? (
+                            <iframe
+                              src={getVideoEmbedUrl(vid.video_url)!}
+                              title={vid.title || project.title}
+                              className="w-full h-full object-contain"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                            />
+                          ) : (
+                            <video src={vid.video_url} controls playsInline loop className="w-full h-full object-contain" />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -152,10 +152,19 @@ router.get('/projects', async (req, res) => {
 
     const projects = await db.prepare(query).all(...params);
 
-    // Attach gallery images to each project
+    // Attach gallery images and videos to each project
     const getImages = db.prepare('SELECT id, image_url, caption, alt_text, sort_order FROM portfolio_images WHERE project_id = ? ORDER BY sort_order ASC');
+    const getVideos = db.prepare('SELECT id, title, video_url, orientation, sort_order FROM portfolio_videos WHERE project_id = ? ORDER BY sort_order ASC');
     for (const p of projects) {
       p.images = await getImages.all(p.id);
+      const vids = await getVideos.all(p.id);
+      if (vids && vids.length > 0) {
+        p.videos = vids;
+      } else if (p.featured_video_url) {
+        p.videos = [{ id: 0, title: 'Video Utama', video_url: p.featured_video_url, orientation: p.orientation || 'portrait', sort_order: 1 }];
+      } else {
+        p.videos = [];
+      }
     }
 
     const totalCount = (await db.prepare('SELECT COUNT(*) as count FROM portfolio_projects' + (!all ? ' WHERE is_published = 1' : '')).get())?.count || 0;
@@ -187,8 +196,22 @@ router.get('/projects/:slug', async (req, res) => {
       WHERE project_id = ?
       ORDER BY sort_order ASC
     `).all(project.id);
-
     project.images = images;
+
+    const videos = await db.prepare(`
+      SELECT id, title, video_url, orientation, sort_order
+      FROM portfolio_videos
+      WHERE project_id = ?
+      ORDER BY sort_order ASC
+    `).all(project.id);
+
+    if (videos && videos.length > 0) {
+      project.videos = videos;
+    } else if (project.featured_video_url) {
+      project.videos = [{ id: 0, title: 'Video Utama', video_url: project.featured_video_url, orientation: project.orientation || 'portrait', sort_order: 1 }];
+    } else {
+      project.videos = [];
+    }
 
     // Get related projects from the same category
     const related = await db.prepare(`
@@ -213,7 +236,7 @@ router.post('/projects', authenticateToken, async (req, res) => {
       client_name, project_date, location, cover_image_url, featured_video_url,
       media_type, orientation,
       is_featured, is_published, sort_order, seo_title, seo_description,
-      gallery_images
+      gallery_images, videos
     } = req.body;
 
     if (!title) {
@@ -230,8 +253,16 @@ router.post('/projects', authenticateToken, async (req, res) => {
     const nextOrder = sort_order !== undefined ? sort_order : (maxOrder?.m || 0) + 1;
 
     // Detect media_type and orientation if not explicitly provided
-    const finalMediaType = media_type || (featured_video_url && featured_video_url.trim() ? 'video' : 'photo');
-    const finalOrientation = orientation || 'portrait';
+    const primaryVideoUrl = (Array.isArray(videos) && videos.length > 0 && videos[0].video_url)
+      ? videos[0].video_url
+      : (featured_video_url || '');
+
+    const primaryOrientation = (Array.isArray(videos) && videos.length > 0 && videos[0].orientation)
+      ? videos[0].orientation
+      : (orientation || 'portrait');
+
+    const finalMediaType = media_type || (primaryVideoUrl && primaryVideoUrl.trim() ? 'video' : 'photo');
+    const finalOrientation = primaryOrientation;
 
     const insertProj = db.prepare(`
       INSERT INTO portfolio_projects (
@@ -245,13 +276,35 @@ router.post('/projects', authenticateToken, async (req, res) => {
     const result = await insertProj.run(
       category_id || null, title, finalSlug, short_description || '', full_description || '',
       client_name || '', project_date || '', location || '',
-      cover_image_url || '', featured_video_url || '',
+      cover_image_url || '', primaryVideoUrl,
       finalMediaType, finalOrientation,
       is_featured ? 1 : 0, is_published !== undefined ? (is_published ? 1 : 0) : 1,
       nextOrder, seo_title || `${title} — AFFRAME Portfolio`, seo_description || short_description || ''
     );
 
     const projectId = result.lastInsertRowid;
+
+    // Insert videos into portfolio_videos
+    if (Array.isArray(videos) && videos.length > 0) {
+      const insertVid = db.prepare(`
+        INSERT INTO portfolio_videos (project_id, title, video_url, orientation, sort_order)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      for (let idx = 0; idx < videos.length; idx++) {
+        const v = videos[idx];
+        const vUrl = typeof v === 'string' ? v.trim() : (v.video_url || '').trim();
+        const vTitle = typeof v === 'object' ? (v.title || `Video ${idx + 1}`) : `Video ${idx + 1}`;
+        const vOrient = typeof v === 'object' ? (v.orientation || 'portrait') : 'portrait';
+        if (vUrl) {
+          await insertVid.run(projectId, vTitle, vUrl, vOrient, idx + 1);
+        }
+      }
+    } else if (primaryVideoUrl) {
+      await db.prepare(`
+        INSERT INTO portfolio_videos (project_id, title, video_url, orientation, sort_order)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(projectId, 'Video Utama', primaryVideoUrl, finalOrientation, 1);
+    }
 
     // Insert gallery images if provided
     if (Array.isArray(gallery_images) && gallery_images.length > 0) {
@@ -272,6 +325,7 @@ router.post('/projects', authenticateToken, async (req, res) => {
 
     const created = await db.prepare('SELECT * FROM portfolio_projects WHERE id = ?').get(projectId);
     created.images = await db.prepare('SELECT * FROM portfolio_images WHERE project_id = ? ORDER BY sort_order ASC').all(projectId);
+    created.videos = await db.prepare('SELECT * FROM portfolio_videos WHERE project_id = ? ORDER BY sort_order ASC').all(projectId);
 
     res.status(201).json({ message: 'Proyek portofolio berhasil dibuat.', project: created });
   } catch (error) {
@@ -288,7 +342,7 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
       client_name, project_date, location, cover_image_url, featured_video_url,
       media_type, orientation,
       is_featured, is_published, sort_order, seo_title, seo_description,
-      gallery_images
+      gallery_images, videos
     } = req.body;
 
     const current = await db.prepare('SELECT * FROM portfolio_projects WHERE id = ?').get(id);
@@ -304,9 +358,21 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
       }
     }
 
+    // Determine primary video URL from videos array or featured_video_url
+    let primaryVideoUrl = featured_video_url;
+    let primaryOrientation = orientation;
+    if (Array.isArray(videos)) {
+      if (videos.length > 0 && videos[0].video_url) {
+        primaryVideoUrl = videos[0].video_url;
+        if (videos[0].orientation) primaryOrientation = videos[0].orientation;
+      } else {
+        primaryVideoUrl = '';
+      }
+    }
+
     // Determine media_type if auto-updated
     let finalMediaType = media_type;
-    if (!finalMediaType && featured_video_url && featured_video_url.trim() && current.media_type !== 'video') {
+    if (!finalMediaType && primaryVideoUrl && primaryVideoUrl.trim() && current.media_type !== 'video') {
       finalMediaType = 'video';
     }
 
@@ -321,7 +387,7 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
           project_date = COALESCE(?, project_date),
           location = COALESCE(?, location),
           cover_image_url = COALESCE(?, cover_image_url),
-          featured_video_url = COALESCE(?, featured_video_url),
+          featured_video_url = ?,
           media_type = COALESCE(?, media_type),
           orientation = COALESCE(?, orientation),
           is_featured = COALESCE(?, is_featured),
@@ -334,13 +400,32 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
     `).run(
       category_id !== undefined ? category_id : current.category_id,
       title, finalSlug, short_description, full_description,
-      client_name, project_date, location, cover_image_url, featured_video_url,
-      finalMediaType, orientation,
+      client_name, project_date, location, cover_image_url, 
+      primaryVideoUrl !== undefined ? primaryVideoUrl : current.featured_video_url,
+      finalMediaType, primaryOrientation,
       is_featured !== undefined ? (is_featured ? 1 : 0) : current.is_featured,
       is_published !== undefined ? (is_published ? 1 : 0) : current.is_published,
       sort_order !== undefined ? sort_order : current.sort_order,
       seo_title, seo_description, id
     );
+
+    // If videos array is provided, replace portfolio_videos
+    if (Array.isArray(videos)) {
+      await db.prepare('DELETE FROM portfolio_videos WHERE project_id = ?').run(id);
+      const insertVid = db.prepare(`
+        INSERT INTO portfolio_videos (project_id, title, video_url, orientation, sort_order)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      for (let idx = 0; idx < videos.length; idx++) {
+        const v = videos[idx];
+        const vUrl = typeof v === 'string' ? v.trim() : (v.video_url || '').trim();
+        const vTitle = typeof v === 'object' ? (v.title || `Video ${idx + 1}`) : `Video ${idx + 1}`;
+        const vOrient = typeof v === 'object' ? (v.orientation || 'portrait') : 'portrait';
+        if (vUrl) {
+          await insertVid.run(id, vTitle, vUrl, vOrient, idx + 1);
+        }
+      }
+    }
 
     // If gallery_images array is provided, replace gallery images
     if (Array.isArray(gallery_images)) {
@@ -362,6 +447,7 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
 
     const updated = await db.prepare('SELECT * FROM portfolio_projects WHERE id = ?').get(id);
     updated.images = await db.prepare('SELECT * FROM portfolio_images WHERE project_id = ? ORDER BY sort_order ASC').all(id);
+    updated.videos = await db.prepare('SELECT * FROM portfolio_videos WHERE project_id = ? ORDER BY sort_order ASC').all(id);
 
     res.json({ message: 'Proyek portofolio berhasil diperbarui.', project: updated });
   } catch (error) {
@@ -373,6 +459,7 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
 router.delete('/projects/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+    await db.prepare('DELETE FROM portfolio_videos WHERE project_id = ?').run(id);
     await db.prepare('DELETE FROM portfolio_images WHERE project_id = ?').run(id);
     await db.prepare('DELETE FROM portfolio_projects WHERE id = ?').run(id);
     res.json({ message: 'Proyek portofolio berhasil dihapus.' });

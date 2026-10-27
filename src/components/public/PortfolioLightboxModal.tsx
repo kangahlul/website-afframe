@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { X, ChevronLeft, ChevronRight, Play, Film, Image as ImageIcon, MessageCircle, ExternalLink } from 'lucide-react';
-import { PortfolioProject } from '../../types';
+import { X, ChevronLeft, ChevronRight, Film, Image as ImageIcon, MessageCircle, ExternalLink, Play } from 'lucide-react';
+import { PortfolioProject, PortfolioVideo } from '../../types';
 import { getVideoEmbedUrl, normalizeMediaUrl } from '../../lib/mediaUtils';
 
 interface PortfolioLightboxModalProps {
@@ -20,14 +20,16 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   onNavigate,
 }) => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState<number>(0);
   const touchStartX = useRef<number | null>(null);
 
   const total = projects.length;
   const project = projects[currentIndex];
 
-  // Reset selected photo when project changes
+  // Reset indices when project changes
   useEffect(() => {
     setSelectedPhotoIndex(0);
+    setSelectedVideoIndex(0);
   }, [currentIndex]);
 
   const handlePrev = useCallback(() => {
@@ -61,7 +63,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, handlePrev, handleNext, onClose]);
 
-  // Prevent body scroll when open
+  // Prevent background scroll
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -93,11 +95,23 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
 
   if (!isOpen || !project) return null;
 
-  const isVideo = project.media_type === 'video' || Boolean(project.featured_video_url && project.featured_video_url.trim());
-  const isPortrait = project.orientation === 'portrait';
-  const embedUrl = isVideo && project.featured_video_url ? getVideoEmbedUrl(project.featured_video_url) : null;
+  // Determine all available videos for this project
+  const projectVideos: PortfolioVideo[] = (project.videos && project.videos.length > 0)
+    ? project.videos
+    : project.featured_video_url
+      ? [{ title: 'Video Utama', video_url: project.featured_video_url, orientation: project.orientation || 'portrait' }]
+      : [];
 
-  // Active photo for photo galleries
+  const hasVideos = projectVideos.length > 0;
+  const isVideoMode = project.media_type === 'video' || hasVideos;
+
+  // Active video
+  const activeVideo: PortfolioVideo | undefined = projectVideos[selectedVideoIndex] || projectVideos[0];
+  const activeVideoUrl = activeVideo?.video_url || '';
+  const isPortrait = (activeVideo?.orientation || project.orientation || 'portrait') === 'portrait';
+  const embedUrl = activeVideoUrl ? getVideoEmbedUrl(activeVideoUrl) : null;
+
+  // All photos for photo viewer
   const allImages = [
     project.cover_image_url,
     ...(project.images ? project.images.map(img => img.image_url) : [])
@@ -110,39 +124,39 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between overflow-y-auto"
+      className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between h-[100dvh] w-full overflow-hidden select-none"
       onClick={onClose}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       {/* Top Header Bar */}
       <div
-        className="w-full flex items-center justify-between px-4 sm:px-8 py-4 z-20 bg-gradient-to-b from-black/80 to-transparent"
+        className="w-full flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 z-30 bg-gradient-to-b from-black via-black/80 to-transparent shrink-0"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           {/* Index Counter */}
-          <span className="px-2.5 py-1 rounded-full bg-[#18181C] border border-zinc-800 text-[11px] font-mono text-zinc-300">
+          <span className="px-2 py-0.5 rounded-full bg-[#18181C] border border-zinc-800 text-[10px] sm:text-[11px] font-mono text-zinc-300 shrink-0">
             {currentIndex + 1} / {total}
           </span>
 
           {/* Category Pill */}
           {project.category_name && (
-            <span className="px-2.5 py-1 rounded-full bg-[#C5A880]/15 border border-[#C5A880]/40 text-[#E2D2BC] text-[10px] uppercase tracking-wider font-semibold">
+            <span className="px-2 py-0.5 rounded-full bg-[#C5A880]/15 border border-[#C5A880]/40 text-[#E2D2BC] text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold truncate max-w-[120px] sm:max-w-none">
               {project.category_name}
             </span>
           )}
 
           {/* Media Format Badge */}
-          {isVideo ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[10px] font-semibold">
-              <Film className="w-3 h-3" />
-              <span>{isPortrait ? 'Reels 9:16 (Portrait)' : 'Sinematik 16:9'}</span>
+          {isVideoMode ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[9px] sm:text-[10px] font-semibold shrink-0">
+              <Film className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+              <span>{isPortrait ? 'Reels 9:16' : 'Sinematik 16:9'}</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 text-[10px] font-semibold">
-              <ImageIcon className="w-3 h-3" />
-              <span>Galeri Foto</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 text-[9px] sm:text-[10px] font-semibold shrink-0">
+              <ImageIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+              <span>Foto</span>
             </span>
           )}
         </div>
@@ -150,71 +164,115 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors border border-zinc-800 cursor-pointer"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white flex items-center justify-center transition-colors border border-zinc-800 cursor-pointer shrink-0 ml-2"
           title="Tutup (Esc)"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
 
-      {/* Main Showcase Stage */}
+      {/* Multi-Video Selector Tabs (if project has more than 1 video) */}
+      {isVideoMode && projectVideos.length > 1 && (
+        <div
+          className="w-full px-3 sm:px-6 py-1.5 z-25 bg-black/60 flex items-center justify-center gap-1.5 overflow-x-auto scrollbar-none shrink-0"
+          onClick={e => e.stopPropagation()}
+        >
+          <span className="text-[10px] text-zinc-400 font-semibold mr-1 shrink-0">Pilih Video:</span>
+          {projectVideos.map((vid, idx) => (
+            <button
+              key={idx}
+              onClick={() => setSelectedVideoIndex(idx)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all shrink-0 cursor-pointer ${
+                selectedVideoIndex === idx
+                  ? 'bg-amber-500 text-black font-bold shadow-md shadow-amber-500/30'
+                  : 'bg-zinc-900/90 text-zinc-400 hover:text-white border border-zinc-800'
+              }`}
+            >
+              <Play className="w-2.5 h-2.5 fill-current" />
+              <span>{vid.title || `Video ${idx + 1}`}</span>
+              <span className="text-[9px] opacity-75">
+                ({vid.orientation === 'portrait' ? '9:16' : '16:9'})
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Main Showcase Stage (Responsive Bounded Height for Mobile & Desktop) */}
       <div
-        className="relative flex-grow flex items-center justify-center px-4 sm:px-16 py-2 my-auto"
+        className="relative flex-grow flex items-center justify-center px-2 sm:px-14 py-1 sm:py-2 min-h-0 w-full overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        {/* Navigation Arrow: Previous */}
+        {/* Desktop Prev Button */}
         {total > 1 && (
           <button
             onClick={handlePrev}
-            className="absolute left-2 sm:left-6 z-30 w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-black/60 hover:bg-[#C5A880] text-zinc-300 hover:text-black border border-zinc-700/80 hover:border-[#C5A880] flex items-center justify-center transition-all duration-200 shadow-xl cursor-pointer hover:scale-105"
-            title="Karya Sebelumnya (Panah Kiri)"
+            className="hidden sm:flex absolute left-3 md:left-6 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/70 hover:bg-[#C5A880] text-zinc-300 hover:text-black border border-zinc-700/80 hover:border-[#C5A880] items-center justify-center transition-all shadow-xl cursor-pointer hover:scale-105"
+            title="Karya Sebelumnya"
           >
-            <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7" />
+            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
           </button>
         )}
 
-        {/* Media Container */}
-        <div className="w-full flex items-center justify-center">
-          {isVideo ? (
+        {/* Media Player Container */}
+        <div className="w-full h-full flex items-center justify-center min-h-0">
+          {isVideoMode && activeVideoUrl ? (
             isPortrait ? (
-              /* Portrait 9:16 Smartphone / Reels Container */
-              <div className="relative w-[300px] sm:w-[350px] md:w-[380px] aspect-[9/16] bg-black rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 flex items-center justify-center">
-                {/* Smartphone Speaker / Notch Accent */}
-                <div className="absolute top-2.5 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-zinc-700/60 rounded-full z-20 pointer-events-none" />
+              /* ========================================================
+                 PORTRAIT 9:16 REELS CONTAINER (Mobile & Desktop Fit)
+                 Scales purely by available height so it never cuts off!
+                 ======================================================== */
+              <div
+                className="relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 flex items-center justify-center max-w-[90vw]"
+                style={{
+                  height: 'calc(100dvh - 160px)',
+                  maxHeight: '580px',
+                  aspectRatio: '9/16',
+                }}
+              >
+                {/* Smartphone Speaker Accent */}
+                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 sm:w-16 h-1 bg-zinc-700/60 rounded-full z-20 pointer-events-none" />
 
                 {embedUrl ? (
                   <iframe
                     src={embedUrl}
-                    title={project.title}
-                    className="w-full h-full object-cover"
+                    title={activeVideo?.title || project.title}
+                    className="w-full h-full object-contain"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
                 ) : (
                   <video
-                    src={project.featured_video_url}
+                    src={activeVideoUrl}
                     controls
                     autoPlay
                     playsInline
                     loop
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 )}
               </div>
             ) : (
-              /* Landscape 16:9 Cinematic Player */
-              <div className="relative w-full max-w-4xl lg:max-w-5xl aspect-video bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-2xl flex items-center justify-center">
+              /* ========================================================
+                 LANDSCAPE 16:9 CINEMATIC CONTAINER
+                 ======================================================== */
+              <div
+                className="relative w-full max-w-4xl aspect-video bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-2xl flex items-center justify-center"
+                style={{
+                  maxHeight: 'calc(100dvh - 160px)',
+                }}
+              >
                 {embedUrl ? (
                   <iframe
                     src={embedUrl}
-                    title={project.title}
+                    title={activeVideo?.title || project.title}
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
                 ) : (
                   <video
-                    src={project.featured_video_url}
+                    src={activeVideoUrl}
                     controls
                     autoPlay
                     playsInline
@@ -224,26 +282,31 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
               </div>
             )
           ) : (
-            /* Photo Viewer with Multiple Gallery Support */
-            <div className="flex flex-col items-center max-w-5xl w-full">
-              <div className="relative max-h-[68vh] flex items-center justify-center">
+            /* ========================================================
+               PHOTO GALLERY VIEWER
+               ======================================================== */
+            <div className="flex flex-col items-center justify-center h-full max-w-5xl w-full min-h-0">
+              <div
+                className="relative flex items-center justify-center min-h-0"
+                style={{ height: allImages.length > 1 ? 'calc(100dvh - 210px)' : 'calc(100dvh - 160px)' }}
+              >
                 <img
                   src={normalizeMediaUrl(currentPhotoUrl)}
                   alt={project.title}
-                  className="max-h-[68vh] max-w-full object-contain rounded-lg border border-zinc-800 shadow-2xl"
+                  className="max-h-full max-w-full object-contain rounded-lg border border-zinc-800 shadow-2xl"
                 />
               </div>
 
-              {/* Multi-Photo Thumbnail Bar */}
+              {/* Multi-Photo Thumbnail Strip */}
               {allImages.length > 1 && (
-                <div className="flex items-center gap-2 mt-3 overflow-x-auto max-w-full px-2 py-1 scrollbar-none">
+                <div className="flex items-center gap-1.5 mt-2 overflow-x-auto max-w-full px-2 py-1 scrollbar-none shrink-0">
                   {allImages.map((imgUrl, idx) => (
                     <button
                       key={idx}
                       onClick={() => setSelectedPhotoIndex(idx)}
-                      className={`w-12 h-12 rounded overflow-hidden border transition-all shrink-0 cursor-pointer ${
+                      className={`w-9 h-9 sm:w-11 sm:h-11 rounded overflow-hidden border transition-all shrink-0 cursor-pointer ${
                         selectedPhotoIndex === idx
-                          ? 'border-[#C5A880] ring-2 ring-[#C5A880]/40 scale-105'
+                          ? 'border-[#C5A880] ring-2 ring-[#C5A880]/50 scale-105'
                           : 'border-zinc-800 opacity-60 hover:opacity-100'
                       }`}
                     >
@@ -256,52 +319,79 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
           )}
         </div>
 
-        {/* Navigation Arrow: Next */}
+        {/* Desktop Next Button */}
         {total > 1 && (
           <button
             onClick={handleNext}
-            className="absolute right-2 sm:right-6 z-30 w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-black/60 hover:bg-[#C5A880] text-zinc-300 hover:text-black border border-zinc-700/80 hover:border-[#C5A880] flex items-center justify-center transition-all duration-200 shadow-xl cursor-pointer hover:scale-105"
-            title="Karya Berikutnya (Panah Kanan)"
+            className="hidden sm:flex absolute right-3 md:right-6 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/70 hover:bg-[#C5A880] text-zinc-300 hover:text-black border border-zinc-700/80 hover:border-[#C5A880] items-center justify-center transition-all shadow-xl cursor-pointer hover:scale-105"
+            title="Karya Berikutnya"
           >
-            <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7" />
+            <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
           </button>
         )}
       </div>
 
-      {/* Bottom Info & Action Bar */}
+      {/* Bottom Info Bar & Navigation Controls */}
       <div
-        className="w-full px-4 sm:px-8 py-4 z-20 bg-gradient-to-t from-black via-black/90 to-transparent border-t border-zinc-900"
+        className="w-full px-3 sm:px-6 py-2.5 sm:py-3 z-30 bg-gradient-to-t from-black via-black/95 to-black/80 border-t border-zinc-900 shrink-0"
         onClick={e => e.stopPropagation()}
       >
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="min-w-0 space-y-1">
-            <h3 className="font-serif text-lg sm:text-2xl text-[#F8F6F0] font-medium truncate">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          {/* Mobile Prev / Next Navigation Controls Bar */}
+          {total > 1 && (
+            <div className="flex sm:hidden items-center justify-between w-full pb-1 border-b border-zinc-800/60">
+              <button
+                onClick={handlePrev}
+                className="inline-flex items-center gap-1 px-3 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded text-[11px] font-medium border border-zinc-800"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Sebelumnya</span>
+              </button>
+
+              <span className="text-[10px] text-zinc-500 font-mono">
+                Geser untuk karya lain ({currentIndex + 1}/{total})
+              </span>
+
+              <button
+                onClick={handleNext}
+                className="inline-flex items-center gap-1 px-3 py-1 bg-[#C5A880] hover:bg-[#B39366] text-black rounded text-[11px] font-semibold"
+              >
+                <span>Berikutnya</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Project Title & Short Description */}
+          <div className="min-w-0 space-y-0.5">
+            <h3 className="font-serif text-sm sm:text-lg text-[#F8F6F0] font-medium truncate">
               {project.title}
             </h3>
-            <p className="text-xs text-zinc-400 line-clamp-1 max-w-2xl font-light">
+            <p className="text-[11px] sm:text-xs text-zinc-400 truncate font-light">
               {project.short_description || project.location || 'Surabaya / Lamongan / Gresik'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
-            {/* Direct WhatsApp Consultation */}
+          {/* Direct Actions */}
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            {/* WhatsApp Consultation */}
             <a
               href={`https://wa.me/6285755152579?text=${waConsultMessage}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-sm bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/40 text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/40 text-[11px] font-semibold transition-colors"
             >
-              <MessageCircle className="w-3.5 h-3.5" />
+              <MessageCircle className="w-3 h-3" />
               <span>Tanya Konsep Serupa</span>
             </a>
 
-            {/* Read full story page */}
+            {/* Read full story */}
             <Link
               to={`/portfolio/${project.slug}`}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-sm bg-[#18181D] hover:bg-[#C5A880] text-zinc-200 hover:text-black border border-zinc-700 hover:border-[#C5A880] text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xs bg-[#18181D] hover:bg-[#C5A880] text-zinc-200 hover:text-black border border-zinc-700 hover:border-[#C5A880] text-[11px] font-semibold transition-colors"
             >
-              <span>Cerita Lengkap</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Detail</span>
+              <ExternalLink className="w-3 h-3" />
             </Link>
           </div>
         </div>

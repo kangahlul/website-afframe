@@ -38,6 +38,18 @@ export const PortfolioManager: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
 
+  // Multi-Video for this project
+  interface ProjectVideoItem {
+    id?: number;
+    title: string;
+    video_url: string;
+    orientation: 'portrait' | 'landscape' | 'square';
+  }
+  const [videos, setVideos] = useState<ProjectVideoItem[]>([]);
+  const [newVideoTitle, setNewVideoTitle] = useState('');
+  const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [newVideoOrientation, setNewVideoOrientation] = useState<'portrait' | 'landscape' | 'square'>('portrait');
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -76,6 +88,10 @@ export const PortfolioManager: React.FC = () => {
     setVideoUrl('');
     setMediaType('video');
     setOrientation('portrait');
+    setVideos([]);
+    setNewVideoTitle('');
+    setNewVideoUrl('');
+    setNewVideoOrientation('portrait');
     setIsFeatured(false);
     setIsPublished(true);
     setGalleryImages([]);
@@ -96,10 +112,55 @@ export const PortfolioManager: React.FC = () => {
     setVideoUrl(p.featured_video_url || '');
     setMediaType(p.media_type || (p.featured_video_url && p.featured_video_url.trim() ? 'video' : 'photo'));
     setOrientation(p.orientation || 'portrait');
+
+    // Populate multi-videos
+    if (p.videos && p.videos.length > 0) {
+      setVideos(p.videos.map(v => ({
+        id: v.id,
+        title: v.title || 'Video Acara',
+        video_url: v.video_url,
+        orientation: v.orientation || 'portrait'
+      })));
+    } else if (p.featured_video_url && p.featured_video_url.trim()) {
+      setVideos([{
+        title: 'Video Utama',
+        video_url: p.featured_video_url,
+        orientation: p.orientation || 'portrait'
+      }]);
+    } else {
+      setVideos([]);
+    }
+
+    setNewVideoTitle('');
+    setNewVideoUrl('');
+    setNewVideoOrientation('portrait');
     setIsFeatured(p.is_featured === 1);
     setIsPublished(p.is_published === 1);
     setGalleryImages(p.images ? p.images.map(img => img.image_url) : []);
     setShowModal(true);
+  };
+
+  const addVideoItem = () => {
+    if (!newVideoUrl.trim()) {
+      alert('Harap masukkan tautan URL video atau unggah berkas video terlebih dahulu.');
+      return;
+    }
+    const defaultTitle = newVideoTitle.trim() || `Video ${videos.length + 1} (${newVideoOrientation === 'portrait' ? 'Reels 9:16' : '16:9'})`;
+    setVideos(prev => [
+      ...prev,
+      {
+        title: defaultTitle,
+        video_url: newVideoUrl.trim(),
+        orientation: newVideoOrientation
+      }
+    ]);
+    setNewVideoTitle('');
+    setNewVideoUrl('');
+    setMediaType('video');
+  };
+
+  const removeVideoItem = (index: number) => {
+    setVideos(prev => prev.filter((_, idx) => idx !== index));
   };
 
   const handleUploadVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,8 +170,11 @@ export const PortfolioManager: React.FC = () => {
       setIsUploadingVideo(true);
       const res = await api.uploadFiles([file], 'portfolio');
       if (res.assets && res.assets[0]) {
-        setVideoUrl(res.assets[0].url);
-        setMediaType('video');
+        const uploadedUrl = res.assets[0].url;
+        setNewVideoUrl(uploadedUrl);
+        if (!newVideoTitle.trim()) {
+          setNewVideoTitle(file.name.replace(/\.[^/.]+$/, ''));
+        }
       }
     } catch (err: any) {
       alert(err.message || 'Gagal mengunggah video.');
@@ -178,12 +242,13 @@ export const PortfolioManager: React.FC = () => {
         project_date: projectDate,
         location,
         cover_image_url: coverUrl,
-        featured_video_url: videoUrl,
+        featured_video_url: videos.length > 0 ? videos[0].video_url : videoUrl,
         media_type: mediaType,
-        orientation: orientation,
+        orientation: videos.length > 0 ? videos[0].orientation : orientation,
         is_featured: isFeatured ? 1 : 0,
         is_published: isPublished ? 1 : 0,
-        gallery_images: galleryImages
+        gallery_images: galleryImages,
+        videos: videos
       };
 
       if (editingId) {
@@ -621,121 +686,163 @@ export const PortfolioManager: React.FC = () => {
                   </div>
                 </div>
 
-                {/* If Video: Orientation Selector */}
-                {mediaType === 'video' && (
-                  <div className="p-3.5 bg-amber-500/[0.04] border border-amber-500/20 rounded space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-amber-300 block font-semibold text-xs">
-                        Orientasi Video (Rasio Layar Tampilan) *
+                {/* Multi-Video Section */}
+                <div className="p-4 bg-amber-500/[0.04] border border-amber-500/20 rounded-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-amber-500/15 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Film className="w-4 h-4 text-amber-400" />
+                      <label className="text-amber-300 font-semibold text-xs">
+                        Daftar Video Acara ({videos.length} Video)
                       </label>
-                      <span className="text-[10px] text-zinc-400">Penting untuk estetika Wedding Content Creator</span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => setOrientation('portrait')}
-                        className={`flex flex-col items-center justify-center p-2.5 rounded border text-center transition-all cursor-pointer ${
-                          orientation === 'portrait'
-                            ? 'bg-amber-500/20 border-amber-500 text-amber-200 font-bold'
-                            : 'bg-[#16161A] border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                        }`}
-                      >
-                        <div className="w-5 h-8 border-2 border-current rounded-xs mb-1" />
-                        <span className="text-xs">Portrait (9:16)</span>
-                        <span className="text-[10px] opacity-75 font-normal">Reels, TikTok, Shorts</span>
-                      </button>
+                    <span className="text-[10px] text-zinc-400">
+                      Anda dapat menambahkan lebih dari 1 video (Reels 9:16 & Sinematik 16:9)
+                    </span>
+                  </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setOrientation('landscape')}
-                        className={`flex flex-col items-center justify-center p-2.5 rounded border text-center transition-all cursor-pointer ${
-                          orientation === 'landscape'
-                            ? 'bg-amber-500/20 border-amber-500 text-amber-200 font-bold'
-                            : 'bg-[#16161A] border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                        }`}
-                      >
-                        <div className="w-8 h-4.5 border-2 border-current rounded-xs mb-1" />
-                        <span className="text-xs">Landscape (16:9)</span>
-                        <span className="text-[10px] opacity-75 font-normal">Sinematik Film Teaser</span>
-                      </button>
+                  {/* List of currently added videos */}
+                  {videos.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {videos.map((vid, idx) => (
+                        <div
+                          key={idx}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-[#18181D] border border-zinc-800 rounded-sm"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center shrink-0">
+                              #{idx + 1}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h5 className="font-semibold text-white text-xs truncate">{vid.title}</h5>
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                  vid.orientation === 'portrait'
+                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                    : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                                }`}>
+                                  {vid.orientation === 'portrait' ? 'Reels 9:16' : vid.orientation === 'landscape' ? '16:9 Landscape' : '4:5 Standard'}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-zinc-500 font-mono truncate max-w-md mt-0.5">
+                                {vid.video_url}
+                              </p>
+                            </div>
+                          </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setOrientation('square')}
-                        className={`flex flex-col items-center justify-center p-2.5 rounded border text-center transition-all cursor-pointer ${
-                          orientation === 'square'
-                            ? 'bg-amber-500/20 border-amber-500 text-amber-200 font-bold'
-                            : 'bg-[#16161A] border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                        }`}
-                      >
-                        <div className="w-6 h-6 border-2 border-current rounded-xs mb-1" />
-                        <span className="text-xs">Standard (4:5 / 1:1)</span>
-                        <span className="text-[10px] opacity-75 font-normal">Feed Instagram</span>
-                      </button>
+                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => removeVideoItem(idx)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-600/40 rounded text-[11px] font-medium transition-colors cursor-pointer"
+                              title="Hapus Video Ini dari Acara"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Hapus Video</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  ) : (
+                    <div className="p-4 text-center text-[11px] text-zinc-500 bg-[#16161A] border border-dashed border-zinc-800 rounded">
+                      Belum ada video yang ditambahkan untuk acara ini. Gunakan formulir di bawah untuk menambah video pertama.
+                    </div>
+                  )}
 
-                    {/* Video URL & Upload */}
-                    <div className="pt-2 border-t border-amber-500/15 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-zinc-300 block font-semibold text-xs">Tautan / Berkas Video *</label>
-                        {videoUrl && (
+                  {/* Form to Add a New Video */}
+                  <div className="p-3 bg-[#16161A] border border-zinc-800 rounded-sm space-y-3">
+                    <span className="text-zinc-200 font-semibold text-xs block">
+                      + Tambah Video Baru ke Acara Ini:
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-zinc-400 block mb-1 text-[11px]">Judul / Keterangan Video</label>
+                        <input
+                          type="text"
+                          placeholder="Misal: Reels Teaser 9:16, Sinematik Akad, dll"
+                          value={newVideoTitle}
+                          onChange={e => setNewVideoTitle(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-[#18181D] border border-zinc-800 rounded text-zinc-200 text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-zinc-400 block mb-1 text-[11px]">Format Orientasi Video</label>
+                        <div className="grid grid-cols-3 gap-1.5">
                           <button
                             type="button"
-                            onClick={() => setVideoUrl('')}
-                            className="text-red-400 hover:text-red-300 text-[11px] flex items-center gap-1 cursor-pointer"
+                            onClick={() => setNewVideoOrientation('portrait')}
+                            className={`py-1.5 px-2 rounded text-[11px] font-medium text-center transition-colors cursor-pointer ${
+                              newVideoOrientation === 'portrait'
+                                ? 'bg-amber-500 text-black font-bold'
+                                : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                            }`}
                           >
-                            <Trash2 className="w-3 h-3" />
-                            <span>Hapus Video</span>
+                            📱 9:16 Reels
                           </button>
-                        )}
+                          <button
+                            type="button"
+                            onClick={() => setNewVideoOrientation('landscape')}
+                            className={`py-1.5 px-2 rounded text-[11px] font-medium text-center transition-colors cursor-pointer ${
+                              newVideoOrientation === 'landscape'
+                                ? 'bg-amber-500 text-black font-bold'
+                                : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            🖥️ 16:9 Film
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setNewVideoOrientation('square')}
+                            className={`py-1.5 px-2 rounded text-[11px] font-medium text-center transition-colors cursor-pointer ${
+                              newVideoOrientation === 'square'
+                                ? 'bg-amber-500 text-black font-bold'
+                                : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            🔲 4:5 Feed
+                          </button>
+                        </div>
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="text-zinc-400 block mb-1 text-[11px]">Tautan URL atau Unggah Berkas MP4</label>
                       <div className="flex gap-2">
                         <input
                           type="url"
                           placeholder="Tautan YouTube Shorts, Google Drive preview, TikTok, atau MP4..."
-                          value={videoUrl}
-                          onChange={e => setVideoUrl(e.target.value)}
-                          className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200 text-xs"
+                          value={newVideoUrl}
+                          onChange={e => setNewVideoUrl(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-[#18181D] border border-zinc-800 rounded text-zinc-200 text-xs"
                         />
-                        <label className="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded cursor-pointer shrink-0 flex items-center gap-1.5 text-xs font-semibold" title="Unggah Berkas Video MP4">
-                          <Upload className="w-4 h-4" />
+                        <label className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded cursor-pointer shrink-0 flex items-center gap-1.5 text-xs font-semibold" title="Unggah Berkas Video MP4">
+                          <Upload className="w-3.5 h-3.5" />
                           <span>{isUploadingVideo ? 'Mengunggah...' : 'Unggah MP4'}</span>
                           <input type="file" accept="video/mp4,video/webm" onChange={handleUploadVideo} disabled={isUploadingVideo} className="hidden" />
                         </label>
                       </div>
-                      <p className="text-[10px] text-zinc-400">
-                        Tip: Untuk video reels portrait 9:16 dari Google Drive, YouTube Shorts, atau file MP4 akan otomatis diputar elegan tanpa bilah hitam.
-                      </p>
+                    </div>
 
-                      {/* Video Preview */}
-                      {videoUrl.trim() && (
-                        <div className="pt-2">
-                          <span className="text-[11px] text-zinc-400 block mb-1">Pratinjau Video:</span>
-                          <div className={`bg-black rounded overflow-hidden border border-zinc-800 ${
-                            orientation === 'portrait' ? 'aspect-[9/16] w-40 mx-auto' : 'aspect-video w-64'
-                          }`}>
-                            {getVideoEmbedUrl(videoUrl) ? (
-                              <iframe
-                                src={getVideoEmbedUrl(videoUrl)!}
-                                title="Video Preview"
-                                className="w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              />
-                            ) : (
-                              <video src={videoUrl} controls className="w-full h-full object-contain" />
-                            )}
-                          </div>
-                        </div>
-                      )}
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={addVideoItem}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-sm text-xs cursor-pointer shadow-md transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Tambahkan Video ke Acara Ini</span>
+                      </button>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* Cover Image */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-[#C5A880] block font-semibold text-xs">
-                      {mediaType === 'video' ? 'Foto Sampul / Poster Video' : 'Foto Sampul Utama *'}
+                      Foto Sampul Utama / Poster Kartu *
                     </label>
                     {coverUrl && (
                       <button
@@ -744,7 +851,7 @@ export const PortfolioManager: React.FC = () => {
                         className="text-red-400 hover:text-red-300 text-[11px] flex items-center gap-1 cursor-pointer"
                       >
                         <Trash2 className="w-3 h-3" />
-                        <span>Hapus</span>
+                        <span>Hapus Sampul</span>
                       </button>
                     )}
                   </div>
@@ -762,9 +869,7 @@ export const PortfolioManager: React.FC = () => {
                     </label>
                   </div>
                   {coverUrl && (
-                    <div className={`bg-black rounded overflow-hidden border border-zinc-800 shadow-sm ${
-                      orientation === 'portrait' && mediaType === 'video' ? 'aspect-[9/16] w-28' : 'aspect-[16/9] w-40'
-                    }`}>
+                    <div className="aspect-[16/9] w-40 bg-black rounded overflow-hidden border border-zinc-800 shadow-sm">
                       <img src={normalizeMediaUrl(coverUrl)} alt="Cover preview" className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -772,29 +877,58 @@ export const PortfolioManager: React.FC = () => {
               </div>
 
               {/* Row 6: Multi-Images Gallery */}
-              <div className="pt-2 border-t border-zinc-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-[#C5A880] font-semibold">Galeri Foto Tambahan ({galleryImages.length} foto)</label>
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer text-[11px]">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Unggah Beberapa Foto Sekaligus</span>
-                    <input type="file" multiple accept="image/*" onChange={handleUploadGallery} className="hidden" />
-                  </label>
+              <div className="pt-3 border-t border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <label className="text-[#C5A880] font-semibold text-xs block">
+                      Galeri Foto Dokumentasi Acara ({galleryImages.length} Foto)
+                    </label>
+                    <span className="text-[10px] text-zinc-400">
+                      Klik tombol merah tong sampah pada masing-masing foto untuk menghapusnya
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {galleryImages.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm('Yakin ingin menghapus semua foto lampiran acara ini?')) {
+                            setGalleryImages([]);
+                          }
+                        }}
+                        className="px-2.5 py-1 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-600/40 rounded text-[11px] cursor-pointer"
+                      >
+                        Hapus Semua Foto
+                      </button>
+                    )}
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer text-[11px]">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Unggah Banyak Foto Sekaligus</span>
+                      <input type="file" multiple accept="image/*" onChange={handleUploadGallery} className="hidden" />
+                    </label>
+                  </div>
                 </div>
 
-                {/* Gallery thumbnails grid */}
+                {/* Gallery thumbnails grid with PROMINENT always-visible delete buttons */}
                 {galleryImages.length > 0 && (
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 p-3 bg-[#18181D] border border-zinc-800 rounded-sm">
                     {galleryImages.map((imgUrl, idx) => (
-                      <div key={idx} className="relative aspect-square rounded overflow-hidden bg-black border border-zinc-800 group">
+                      <div key={idx} className="relative aspect-square rounded overflow-hidden bg-black border border-zinc-700 group shadow">
                         <img src={imgUrl} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                        
+                        {/* Always visible clear delete button */}
                         <button
                           type="button"
                           onClick={() => removeGalleryImage(idx)}
-                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1 right-1 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg transition-transform hover:scale-110 cursor-pointer"
+                          title="Hapus foto ini"
                         >
-                          <X className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
+
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/70 text-zinc-300 rounded text-[9px] font-mono">
+                          #{idx + 1}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -804,7 +938,7 @@ export const PortfolioManager: React.FC = () => {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Atau tambahkan URL foto eksternal..."
+                    placeholder="Atau tambahkan URL foto eksternal (pisahkan dengan koma atau baris baru)..."
                     value={newGalleryInput}
                     onChange={e => setNewGalleryInput(e.target.value)}
                     className="flex-1 px-3 py-1.5 bg-[#18181D] border border-zinc-800 rounded text-zinc-200 text-xs"
@@ -812,7 +946,7 @@ export const PortfolioManager: React.FC = () => {
                   <button
                     type="button"
                     onClick={addGalleryUrl}
-                    className="px-3 py-1.5 bg-zinc-800 text-zinc-200 rounded text-xs"
+                    className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-xs cursor-pointer font-medium"
                   >
                     Tambah URL
                   </button>
