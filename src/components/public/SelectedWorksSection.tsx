@@ -249,7 +249,7 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
             {getVideoEmbedUrl(activeVideoUrl) ? (
               <iframe
                 src={getVideoEmbedUrl(activeVideoUrl)!}
-                title="AF Frame Video Player"
+                title="AFFRAME Video Player"
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen

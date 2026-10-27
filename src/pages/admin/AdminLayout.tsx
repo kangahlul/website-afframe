@@ -68,7 +68,7 @@ export const AdminLayout: React.FC = () => {
     {
       title: 'Konten Website',
       items: [
-        { label: 'Tentang AF Frame', path: '/admin/about', icon: <Info className="w-4 h-4" /> },
+        { label: 'Tentang AFFRAME', path: '/admin/about', icon: <Info className="w-4 h-4" /> },
         { label: 'Kenapa Kami (Benefits)', path: '/admin/benefits', icon: <Sparkles className="w-4 h-4" /> },
         { label: 'FAQ', path: '/admin/faq', icon: <HelpCircle className="w-4 h-4" /> },
         { label: 'Syarat & Ketentuan', path: '/admin/terms', icon: <FileText className="w-4 h-4" /> },
@@ -188,7 +188,7 @@ export const AdminLayout: React.FC = () => {
               <Menu className="w-5 h-5" />
             </button>
             <span className="text-xs font-medium text-zinc-400 hidden sm:inline">
-              AF Frame Content Management System
+              AFFRAME Content Management System
             </span>
           </div>
 

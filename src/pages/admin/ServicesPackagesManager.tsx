@@ -268,7 +268,7 @@ export const ServicesPackagesManager: React.FC = () => {
         <div className="p-4 bg-[#121215] border border-[#24242A] rounded-sm flex items-center justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-white">{currentService.name}</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">{currentService.short_description || 'Kategori layanan resmi AF Frame.'}</p>
+            <p className="text-xs text-zinc-400 mt-0.5">{currentService.short_description || 'Kategori layanan resmi AFFRAME.'}</p>
           </div>
           <div className="flex items-center gap-2">
             <button

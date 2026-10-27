@@ -37,7 +37,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', brand: 'AF Frame', time: new Date().toISOString() });
+  res.json({ status: 'ok', brand: 'AFFRAME', time: new Date().toISOString() });
 });
 
 // Production: serve built client assets if dist exists
@@ -61,6 +61,6 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`[AF Frame API] Server berjalan di http://localhost:${PORT}`);
-  console.log(`[AF Frame API] Uploads directory: ${uploadsDir}`);
+  console.log(`[AFFRAME API] Server berjalan di http://localhost:${PORT}`);
+  console.log(`[AFFRAME API] Uploads directory: ${uploadsDir}`);
 });

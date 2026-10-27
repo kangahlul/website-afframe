@@ -38,11 +38,11 @@ export const ServiceAreasSection: React.FC<ServiceAreasSectionProps> = ({ sectio
             {section?.subtitle || 'Coverage Wilayah'}
           </span>
           <h2 className="font-serif text-3xl sm:text-5xl text-[#F8F6F0] font-light">
-            {section?.title || 'Jangkauan Layanan AF Frame'}
+            {section?.title || 'Jangkauan Layanan AFFRAME'}
           </h2>
           <p className="text-sm text-zinc-400 font-sans">
             {section?.description ||
-              'AF Frame siap hadir langsung mengabadikan momen istimewa Anda di berbagai kota utama Jawa Timur dan wilayah sekitarnya.'}
+              'AFFRAME siap hadir langsung mengabadikan momen istimewa Anda di berbagai kota utama Jawa Timur dan wilayah sekitarnya.'}
           </p>
         </div>
 

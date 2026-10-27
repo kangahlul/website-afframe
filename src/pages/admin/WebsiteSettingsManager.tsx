@@ -24,7 +24,7 @@ export const WebsiteSettingsManager: React.FC = () => {
   useEffect(() => {
     if (settings) {
       setForm({
-        brand_name: settings.brand_name || 'AF Frame',
+        brand_name: settings.brand_name || 'AFFRAME',
         tagline: settings.tagline || 'Capturing Meaningful Moments.',
         brand_description: settings.brand_description || '',
         whatsapp_number: settings.whatsapp_number || '085755152579',
@@ -33,7 +33,7 @@ export const WebsiteSettingsManager: React.FC = () => {
         instagram_url: settings.instagram_url || 'https://www.instagram.com/_afframe/',
         email: settings.email || 'afframe.production@gmail.com',
         address: settings.address || 'Lamongan, Gresik, Surabaya & Sekitarnya, Jawa Timur',
-        footer_copyright: settings.footer_copyright || '© 2026 AF Frame. All rights reserved. Capturing Meaningful Moments.',
+        footer_copyright: settings.footer_copyright || '© 2026 AFFRAME. All rights reserved. Capturing Meaningful Moments.',
       });
     }
   }, [settings]);

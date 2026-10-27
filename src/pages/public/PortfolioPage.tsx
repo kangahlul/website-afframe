@@ -56,7 +56,7 @@ export const PortfolioPage: React.FC = () => {
           {/* Page Banner */}
           <div className="max-w-3xl mb-12 space-y-4">
             <span className="text-xs uppercase tracking-[0.25em] text-[#C5A880] font-sans font-semibold">
-              Arsip Karya AF Frame
+              Arsip Karya AFFRAME
             </span>
             <h1 className="font-serif text-4xl sm:text-6xl text-[#F8F6F0] font-light leading-tight">
               Portofolio & Visual Storytelling
@@ -274,7 +274,7 @@ export const PortfolioPage: React.FC = () => {
             {getVideoEmbedUrl(activeVideoUrl) ? (
               <iframe
                 src={getVideoEmbedUrl(activeVideoUrl)!}
-                title="AF Frame Video Player"
+                title="AFFRAME Video Player"
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen

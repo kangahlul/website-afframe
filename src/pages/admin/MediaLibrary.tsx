@@ -190,7 +190,7 @@ export const MediaLibrary: React.FC = () => {
             Media Library
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Pusat penyimpanan & pengelolaan foto, video, logo, dan aset visual AF Frame.
+            Pusat penyimpanan & pengelolaan foto, video, logo, dan aset visual AFFRAME.
           </p>
         </div>
 
@@ -559,7 +559,7 @@ export const MediaLibrary: React.FC = () => {
                     required
                     value={extTitle}
                     onChange={e => setExtTitle(e.target.value)}
-                    placeholder="Contoh: Logo Emas AF Frame"
+                    placeholder="Contoh: Logo Emas AFFRAME"
                     className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"
                   />
                 </div>

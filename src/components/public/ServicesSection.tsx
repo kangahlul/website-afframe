@@ -205,7 +205,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ section, onSel
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
           <span className="text-xs uppercase tracking-[0.25em] text-[#C5A880] font-sans font-semibold">
-            {section?.subtitle || 'Katalog Resmi AF Frame'}
+            {section?.subtitle || 'Katalog Resmi AFFRAME'}
           </span>
           <h2 className="font-serif text-3xl sm:text-5xl text-[#F8F6F0] font-light">
             {section?.title || 'Pilihan Paket & Investasi'}
@@ -482,7 +482,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ section, onSel
                                     )}
                                   </div>
                                   <p className="text-[11px] text-zinc-500 mt-1.5">
-                                    *Harga promo spesial sesuai katalog resmi AF Frame
+                                    *Harga promo spesial sesuai katalog resmi AFFRAME
                                   </p>
                                 </div>
                               )}
@@ -526,7 +526,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ section, onSel
 
                             <a
                               href={`https://wa.me/62${whatsappPhone.replace(/^0/, '')}?text=${encodeURIComponent(
-                                `Halo AF Frame, saya tertarik ingin berkonsultasi mengenai Paket ${pkg.package_name} untuk ${service.name}. Mohon informasi ketersediaan jadwalnya.`
+                                `Halo AFFRAME, saya tertarik ingin berkonsultasi mengenai Paket ${pkg.package_name} untuk ${service.name}. Mohon informasi ketersediaan jadwalnya.`
                               )}`}
                               target="_blank"
                               rel="noopener noreferrer"

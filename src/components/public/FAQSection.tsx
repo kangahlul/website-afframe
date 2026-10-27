@@ -103,7 +103,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ section }) => {
             </div>
             <div>
               <h4 className="text-sm font-medium text-white">Ada pertanyaan spesifik yang belum terjawab?</h4>
-              <p className="text-xs text-zinc-400">Tim AF Frame siap membantu konsultasi via WhatsApp setiap saat.</p>
+              <p className="text-xs text-zinc-400">Tim AFFRAME siap membantu konsultasi via WhatsApp setiap saat.</p>
             </div>
           </div>
           <a

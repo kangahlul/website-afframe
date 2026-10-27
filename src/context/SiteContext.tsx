@@ -13,9 +13,9 @@ interface SiteContextType {
 }
 
 const defaultSettings: SiteSettings = {
-  brand_name: 'AF Frame',
+  brand_name: 'AFFRAME',
   tagline: 'Capturing Meaningful Moments.',
-  brand_description: 'AF Frame adalah layanan content creator dan dokumentasi moment yang berfokus pada mengabadikan momen spesial dalam bentuk foto, video cinematic, dan konten media sosial.',
+  brand_description: 'AFFRAME adalah layanan content creator dan dokumentasi moment yang berfokus pada mengabadikan momen spesial dalam bentuk foto, video cinematic, dan konten media sosial.',
   whatsapp_number: '085755152579',
   whatsapp_url: 'https://wa.me/6285755152579',
   instagram_handle: '@_afframe',
@@ -33,9 +33,9 @@ const defaultSettings: SiteSettings = {
   logo_monogram: '',
   favicon_url: '/favicon.svg',
   og_image: '',
-  seo_title: 'AF Frame — Capturing Meaningful Moments | Photography & Cinematic Production',
+  seo_title: 'AFFRAME — Capturing Meaningful Moments | Photography & Cinematic Production',
   seo_description: 'Dokumentasi Foto & Video Cinematic Profesional: Corporate, Graduation, Wedding, Creative Content, Personal Branding & Tour Travel.',
-  footer_copyright: '© 2026 AF Frame. All rights reserved. Capturing Meaningful Moments.',
+  footer_copyright: '© 2026 AFFRAME. All rights reserved. Capturing Meaningful Moments.',
 };
 
 const SiteContext = createContext<SiteContextType | undefined>(undefined);

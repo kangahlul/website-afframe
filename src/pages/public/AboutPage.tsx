@@ -18,7 +18,7 @@ export const AboutPage: React.FC = () => {
               Dedikasi & Filosofi
             </span>
             <h1 className="font-serif text-4xl sm:text-6xl text-[#F8F6F0] font-light">
-              Mengenal AF Frame
+              Mengenal AFFRAME
             </h1>
             <p className="text-sm sm:text-base text-zinc-400 font-light font-sans">
               Layanan content creator & dokumentasi momen yang mendedikasikan kepekaan artistik dan ketelitian teknis untuk mengabadikan setiap detik berarti.

@@ -49,7 +49,7 @@ export const AdminLoginPage: React.FC = () => {
         <div className="bg-[#121215] border border-[#24242A] p-8 rounded-sm shadow-2xl space-y-6">
           <div className="border-b border-zinc-800 pb-4">
             <h2 className="text-sm font-semibold text-zinc-200">Masuk ke Panel Administrasi</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Akses terproteksi khusus pengelola website AF Frame.</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Akses terproteksi khusus pengelola website AFFRAME.</p>
           </div>
 
           {error && (

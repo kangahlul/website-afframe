@@ -11,7 +11,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ section }) => {
   if (section && !section.is_visible) return null;
 
   const title = section?.title || 'Capturing Meaningful Moments.';
-  const subtitle = section?.subtitle || 'AF Frame Creative Production';
+  const subtitle = section?.subtitle || 'AFFRAME Creative Production';
   const description =
     section?.description ||
     'Photography, film, and visual storytelling for moments that matter. Menghadirkan rekaman visual berestetika tinggi yang siap tayang di media sosial dan abadi sepanjang masa.';
@@ -62,7 +62,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ section }) => {
         ) : (
           <img
             src={normalizeMediaUrl(bgUrl)}
-            alt="AF Frame Background"
+            alt="AFFRAME Background"
             className="w-full h-full object-cover transform scale-105 motion-safe:animate-pulse-slow"
             style={{ objectPosition: section?.focal_point || 'center' }}
             loading="eager"

@@ -135,7 +135,7 @@ export const Footer: React.FC = () => {
 
             <p className="text-xs text-zinc-400 leading-relaxed max-w-sm">
               {settings.brand_description ||
-                'AF Frame adalah layanan content creator dan dokumentasi profesional yang berfokus pada mengabadikan momen berharga dalam foto resolusi tinggi, video cinematic storytelling, dan konten siap tayang di media sosial.'}
+                'AFFRAME adalah layanan content creator dan dokumentasi profesional yang berfokus pada mengabadikan momen berharga dalam foto resolusi tinggi, video cinematic storytelling, dan konten siap tayang di media sosial.'}
             </p>
 
             {/* Social & Contact Buttons */}
@@ -156,7 +156,7 @@ export const Footer: React.FC = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full border border-zinc-800 bg-[#121215] text-zinc-300 hover:text-white hover:border-[#C5A880] hover:bg-[#1A1A20] transition-all text-xs"
-                title="WhatsApp AF Frame"
+                title="WhatsApp AFFRAME"
               >
                 <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Chat WhatsApp</span>
@@ -205,7 +205,7 @@ export const Footer: React.FC = () => {
                   onClick={e => handleAnchorClick(e, 'about')}
                   className="text-zinc-400 hover:text-[#C5A880] transition-colors cursor-pointer"
                 >
-                  Tentang AF Frame
+                  Tentang AFFRAME
                 </a>
               </li>
               <li>
@@ -214,7 +214,7 @@ export const Footer: React.FC = () => {
                   onClick={e => handleAnchorClick(e, 'why_us')}
                   className="text-zinc-400 hover:text-[#C5A880] transition-colors cursor-pointer"
                 >
-                  Kenapa AF Frame?
+                  Kenapa AFFRAME?
                 </a>
               </li>
               <li>
@@ -383,7 +383,7 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar: Copyright, Coverage, & Scroll to Top */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
           <p className="text-center sm:text-left">
-            {settings.footer_copyright || '© 2026 AF Frame. All rights reserved. Capturing Meaningful Moments.'}
+            {settings.footer_copyright || '© 2026 AFFRAME. All rights reserved. Capturing Meaningful Moments.'}
           </p>
 
           <div className="flex items-center gap-5">

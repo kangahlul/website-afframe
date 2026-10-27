@@ -17,7 +17,7 @@ export const PublicationSection: React.FC<PublicationSectionProps> = ({ section 
   const subtitle = section?.subtitle || 'Komitmen & Karya Kami';
   const description =
     section?.description ||
-    'Setiap karya yang kami hasilkan menjadi bagian dari perjalanan AF Frame dan dapat digunakan untuk kebutuhan portofolio, publikasi, serta pengembangan brand melalui berbagai media.';
+    'Setiap karya yang kami hasilkan menjadi bagian dari perjalanan AFFRAME dan dapat digunakan untuk kebutuhan portofolio, publikasi, serta pengembangan brand melalui berbagai media.';
 
   return (
     <section className="py-20 bg-[#0C0C0D] relative border-t border-[#24242A]/60">

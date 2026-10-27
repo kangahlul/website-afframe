@@ -62,7 +62,7 @@ export const AboutManager: React.FC = () => {
         description,
         background_media_url: imageUrl
       });
-      setSuccessMsg('Bagian Tentang AF Frame berhasil diperbarui!');
+      setSuccessMsg('Bagian Tentang AFFRAME berhasil diperbarui!');
       setTimeout(() => setSuccessMsg(''), 3000);
       refreshSiteData();
     } catch (err: any) {
@@ -77,7 +77,7 @@ export const AboutManager: React.FC = () => {
       <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
         <div>
           <h1 className="font-serif text-2xl sm:text-3xl text-white font-light">
-            Pengelolaan Tentang AF Frame
+            Pengelolaan Tentang AFFRAME
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
             Ubah narasi brand, filosofi visual, serta foto representasi studio.
@@ -153,7 +153,7 @@ export const AboutManager: React.FC = () => {
           </div>
           {imageUrl && (
             <div className="relative aspect-[16/9] max-w-sm bg-black rounded overflow-hidden border border-zinc-800 group mt-2">
-              <img src={imageUrl} alt="About AF Frame" className="w-full h-full object-cover" />
+              <img src={imageUrl} alt="About AFFRAME" className="w-full h-full object-cover" />
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   type="button"

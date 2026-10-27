@@ -193,7 +193,7 @@ export const FAQManager: React.FC = () => {
                 <textarea
                   rows={4}
                   required
-                  placeholder="Jawaban resmi AF Frame..."
+                  placeholder="Jawaban resmi AFFRAME..."
                   value={answer}
                   onChange={e => setAnswer(e.target.value)}
                   className="w-full px-3 py-2 bg-[#18181D] border border-zinc-800 rounded text-zinc-200"

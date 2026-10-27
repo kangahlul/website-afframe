@@ -91,7 +91,7 @@ export const BookingFormSection: React.FC<BookingFormSectionProps> = ({ section,
     }
 
     if (!agreedTerms) {
-      setErrorMessage('Anda harus menyetujui Syarat & Ketentuan AF Frame.');
+      setErrorMessage('Anda harus menyetujui Syarat & Ketentuan AFFRAME.');
       return;
     }
 
@@ -158,7 +158,7 @@ export const BookingFormSection: React.FC<BookingFormSectionProps> = ({ section,
           </h2>
           <p className="text-sm text-zinc-400 font-sans">
             {section?.description ||
-              'Isi formulir singkat di bawah ini. Data Anda akan langsung tersimpan di sistem kami dan terhubung otomatis ke WhatsApp resmi AF Frame.'}
+              'Isi formulir singkat di bawah ini. Data Anda akan langsung tersimpan di sistem kami dan terhubung otomatis ke WhatsApp resmi AFFRAME.'}
           </p>
         </div>
 
@@ -178,7 +178,7 @@ export const BookingFormSection: React.FC<BookingFormSectionProps> = ({ section,
                 </span>
               </p>
               <p className="text-xs text-zinc-400 max-w-md mx-auto">
-                Data inquiry Anda telah tersimpan aman di database AF Frame. Jendela WhatsApp akan otomatis terbuka untuk verifikasi ketersediaan jadwal tim.
+                Data inquiry Anda telah tersimpan aman di database AFFRAME. Jendela WhatsApp akan otomatis terbuka untuk verifikasi ketersediaan jadwal tim.
               </p>
             </div>
 
@@ -503,7 +503,7 @@ export const BookingFormSection: React.FC<BookingFormSectionProps> = ({ section,
               <label htmlFor="terms_agree" className="text-xs text-zinc-400">
                 Saya menyetujui{' '}
                 <a href="#terms" className="text-[#C5A880] hover:underline font-medium">
-                  Syarat & Ketentuan AF Frame
+                  Syarat & Ketentuan AFFRAME
                 </a>
                 , termasuk ketentuan DP 50% untuk konfirmasi jadwal dan hak penggunaan karya untuk materi portofolio.
               </label>

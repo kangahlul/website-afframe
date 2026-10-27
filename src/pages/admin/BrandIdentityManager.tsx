@@ -33,9 +33,9 @@ export const BrandIdentityManager: React.FC = () => {
   useEffect(() => {
     if (settings) {
       setForm({
-        brand_name: settings.brand_name || 'AF Frame',
+        brand_name: settings.brand_name || 'AFFRAME',
         tagline: settings.tagline || 'Capturing Meaningful Moments.',
-        logo_text: settings.logo_text || settings.brand_name || 'AF FRAME',
+        logo_text: settings.logo_text || settings.brand_name || 'AFFRAME',
         logo_subtitle: settings.logo_subtitle || settings.tagline || 'Photography & Cinematic Production',
         logo_initials: settings.logo_initials || 'AF',
         logo_style: settings.logo_style || 'combined',
@@ -104,7 +104,7 @@ export const BrandIdentityManager: React.FC = () => {
             Brand Identity & Media Visual
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Kelola logo, palet warna, tipografi, dan identitas visual AF Frame secara terpusat.
+            Kelola logo, palet warna, tipografi, dan identitas visual AFFRAME secara terpusat.
           </p>
         </div>
       </div>
@@ -171,7 +171,7 @@ export const BrandIdentityManager: React.FC = () => {
                     </div>
                     <div className="flex flex-col">
                       <span className="font-serif text-2xl tracking-[0.2em] font-bold text-[#F8F6F0] leading-none">
-                        {form.logo_text || form.brand_name || 'AF FRAME'}
+                        {form.logo_text || form.brand_name || 'AFFRAME'}
                       </span>
                       <span className="text-[9px] uppercase tracking-[0.28em] text-[#C5A880] font-sans mt-1 font-medium">
                         {form.logo_subtitle || form.tagline || 'Photography & Cinematic Production'}
@@ -277,7 +277,7 @@ export const BrandIdentityManager: React.FC = () => {
                     handleChange('logo_text', e.target.value);
                     handleChange('brand_name', e.target.value);
                   }}
-                  placeholder="AF FRAME"
+                  placeholder="AFFRAME"
                   className="w-full px-3 py-2 bg-[#121215] border border-zinc-700 rounded text-zinc-200 font-serif font-bold text-base tracking-widest"
                 />
                 <p className="text-[10px] text-zinc-500 mt-1">Judul utama dengan font serif emas</p>
@@ -322,7 +322,7 @@ export const BrandIdentityManager: React.FC = () => {
                   {form.logo_primary || form.logo_light ? (
                     <img src={normalizeMediaUrl(form.logo_primary || form.logo_light)} alt="Primary Logo" className="max-h-full max-w-full object-contain" />
                   ) : (
-                    <span className="text-[#C5A880] font-serif text-sm tracking-wider">AF FRAME (Gold)</span>
+                    <span className="text-[#C5A880] font-serif text-sm tracking-wider">AFFRAME (Gold)</span>
                   )}
                 </div>
                 <label className="text-zinc-400 block mb-1 font-mono text-[11px]">Tautan / URL Logo:</label>
@@ -431,7 +431,7 @@ export const BrandIdentityManager: React.FC = () => {
                       />
                     </div>
                     <span className="text-[10px] text-zinc-300 truncate font-sans font-medium">
-                      {form.brand_name || 'AF Frame'}
+                      {form.brand_name || 'AFFRAME'}
                     </span>
                   </div>
                 </div>
@@ -601,7 +601,7 @@ export const BrandIdentityManager: React.FC = () => {
                 Capturing Meaningful Moments.
               </h3>
               <p className="text-xs text-zinc-400">
-                AF Frame Photography & Cinematic Creative Studio — Lamongan, Gresik, Surabaya.
+                AFFRAME Photography & Cinematic Creative Studio — Lamongan, Gresik, Surabaya.
               </p>
             </div>
             <div className="pt-2 flex gap-3">

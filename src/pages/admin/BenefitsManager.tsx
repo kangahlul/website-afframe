@@ -104,7 +104,7 @@ export const BenefitsManager: React.FC = () => {
             Kenapa Kami? (Value Propositions)
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Kelola butir-butir keunggulan signature AF Frame (Natural Moment, Social Media Ready, Bonus Video, dll).
+            Kelola butir-butir keunggulan signature AFFRAME (Natural Moment, Social Media Ready, Bonus Video, dll).
           </p>
         </div>
 

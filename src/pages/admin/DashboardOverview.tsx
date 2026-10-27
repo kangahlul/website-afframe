@@ -93,7 +93,7 @@ export const DashboardOverview: React.FC = () => {
               <span className="text-[11px] text-zinc-400 font-sans">{todayFormatted}</span>
             </div>
             <h1 className="font-serif text-2xl sm:text-3xl text-white font-light">
-              Selamat Datang di Studio Panel <span className="text-[#C5A880]">AF Frame</span>
+              Selamat Datang di Studio Panel <span className="text-[#C5A880]">AFFRAME</span>
             </h1>
             <p className="text-xs text-zinc-400 mt-1 max-w-2xl leading-relaxed">
               Ringkasan operasional harian studio: pantau permintaan reservasi, kelola data klien, dan atur seluruh konten visual website secara real-time.
@@ -459,7 +459,7 @@ export const DashboardOverview: React.FC = () => {
               <span>Wilayah Operasional Utama</span>
             </h3>
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              AF Frame berfokus pada area <strong className="text-zinc-200">Lamongan, Gresik, Surabaya</strong>, dan kota-kota lain di Jawa Timur by request.
+              AFFRAME berfokus pada area <strong className="text-zinc-200">Lamongan, Gresik, Surabaya</strong>, dan kota-kota lain di Jawa Timur by request.
             </p>
             <div className="grid grid-cols-3 gap-2 pt-1 text-center text-xs">
               <div className="p-2 rounded bg-[#18181D] border border-zinc-800">

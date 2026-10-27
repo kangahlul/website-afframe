@@ -17,7 +17,7 @@ app.use((req, res, next) => {
 
 // Health check endpoint (both /api/health and /health)
 app.get(['/api/health', '/health'], (req, res) => {
-  res.json({ status: 'ok', brand: 'AF Frame', platform: 'Vercel Serverless', time: new Date().toISOString() });
+  res.json({ status: 'ok', brand: 'AFFRAME', platform: 'Vercel Serverless', time: new Date().toISOString() });
 });
 
 // Statically required routes for Vercel bundler / NFT tracing

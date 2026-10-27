@@ -104,7 +104,7 @@ export const TermsManager: React.FC = () => {
             Pengelolaan Syarat & Ketentuan (S&K)
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Kelola 7 butir pasal operasional resmi AF Frame sesuai halaman 3 katalog.
+            Kelola 7 butir pasal operasional resmi AFFRAME sesuai halaman 3 katalog.
           </p>
         </div>
 

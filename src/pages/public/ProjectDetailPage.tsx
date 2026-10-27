@@ -180,7 +180,7 @@ export const ProjectDetailPage: React.FC = () => {
             {/* Action Bar */}
             <div className="p-8 bg-[#131316] border border-[#24242A] rounded-sm text-center space-y-4 mb-20">
               <h3 className="font-serif text-2xl sm:text-3xl text-[#F8F6F0]">
-                Tertarik Mengabadikan Momen Anda Bersama AF Frame?
+                Tertarik Mengabadikan Momen Anda Bersama AFFRAME?
               </h3>
               <p className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto">
                 Diskusikan konsep visual, tanggal pelaksanaan, dan pilihan paket terbaik sesuai ekspektasi Anda.

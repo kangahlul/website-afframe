@@ -11,10 +11,10 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ section }) => {
   if (section && !section.is_visible) return null;
 
   const title = section?.title || 'Tentang Kami';
-  const subtitle = section?.subtitle || 'Cerita di Balik Lensa AF Frame';
+  const subtitle = section?.subtitle || 'Cerita di Balik Lensa AFFRAME';
   const description =
     section?.description ||
-    'AF Frame adalah layanan content creator dan dokumentasi moment yang berfokus pada mengabadikan momen spesial dalam bentuk foto, video cinematic, dan konten media sosial. Dari perayaan personal hingga kebutuhan dokumentasi perusahaan, setiap karya menjadi bagian dari cerita yang layak dikenang.';
+    'AFFRAME adalah layanan content creator dan dokumentasi moment yang berfokus pada mengabadikan momen spesial dalam bentuk foto, video cinematic, dan konten media sosial. Dari perayaan personal hingga kebutuhan dokumentasi perusahaan, setiap karya menjadi bagian dari cerita yang layak dikenang.';
 
   const rawBgUrl =
     section?.background_media_url ||
@@ -30,7 +30,7 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ section }) => {
             <div className="relative aspect-[4/5] rounded-sm overflow-hidden border border-[#24242A] shadow-2xl">
               <img
                 src={bgUrl}
-                alt="Tentang AF Frame"
+                alt="Tentang AFFRAME"
                 className="w-full h-full object-cover"
                 loading="lazy"
               />

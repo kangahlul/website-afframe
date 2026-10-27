@@ -125,7 +125,7 @@ export const PortfolioCategoriesManager: React.FC = () => {
             Kategori Portofolio
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Kelola taksonomi kategori karya visual AF Frame (Corporate, Graduation, Wedding, Creative, dll).
+            Kelola taksonomi kategori karya visual AFFRAME (Corporate, Graduation, Wedding, Creative, dll).
           </p>
         </div>
 

@@ -188,7 +188,7 @@ export const NavigationPagesManager: React.FC = () => {
             Navigation & Page Manager
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Kelola menu bar header, tautan footer, serta pembuatan halaman konten kustom AF Frame.
+            Kelola menu bar header, tautan footer, serta pembuatan halaman konten kustom AFFRAME.
           </p>
         </div>
 

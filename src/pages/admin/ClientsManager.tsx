@@ -216,7 +216,7 @@ export const ClientsManager: React.FC = () => {
             Kelola Data Pelanggan & Klien
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Database lengkap pelanggan AF Frame, kontak WhatsApp langsung, riwayat sesi dokumentasi, dan status VIP.
+            Database lengkap pelanggan AFFRAME, kontak WhatsApp langsung, riwayat sesi dokumentasi, dan status VIP.
           </p>
         </div>
 
@@ -835,7 +835,7 @@ export const ClientsManager: React.FC = () => {
                 {formMode === 'create' ? 'Tambah Pelanggan Baru' : 'Edit Data Pelanggan'}
               </h2>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Isi rincian informasi kontak dan kategori pelanggan AF Frame.
+                Isi rincian informasi kontak dan kategori pelanggan AFFRAME.
               </p>
             </div>
 

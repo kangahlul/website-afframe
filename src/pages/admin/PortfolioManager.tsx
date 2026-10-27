@@ -212,7 +212,7 @@ export const PortfolioManager: React.FC = () => {
             Pengelolaan Portofolio
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Tambah, edit, unggah galeri foto beresolusi tinggi, kelola video, dan status publikasi karya AF Frame.
+            Tambah, edit, unggah galeri foto beresolusi tinggi, kelola video, dan status publikasi karya AFFRAME.
           </p>
         </div>
 

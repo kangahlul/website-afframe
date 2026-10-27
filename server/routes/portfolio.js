@@ -236,7 +236,7 @@ router.post('/projects', authenticateToken, async (req, res) => {
       client_name || '', project_date || '', location || '',
       cover_image_url || '', featured_video_url || '',
       is_featured ? 1 : 0, is_published !== undefined ? (is_published ? 1 : 0) : 1,
-      nextOrder, seo_title || `${title} — AF Frame Portfolio`, seo_description || short_description || ''
+      nextOrder, seo_title || `${title} — AFFRAME Portfolio`, seo_description || short_description || ''
     );
 
     const projectId = result.lastInsertRowid;

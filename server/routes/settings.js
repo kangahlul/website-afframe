@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
 // PUT /api/settings - Admin: batch update settings
 router.put('/', authenticateToken, async (req, res) => {
   try {
-    const updates = req.body; // e.g. { brand_name: "AF Frame", whatsapp_number: "085755152579", ... }
+    const updates = req.body; // e.g. { brand_name: "AFFRAME", whatsapp_number: "085755152579", ... }
 
     if (!updates || typeof updates !== 'object') {
       return res.status(400).json({ error: 'Payload pengaturan tidak valid.' });

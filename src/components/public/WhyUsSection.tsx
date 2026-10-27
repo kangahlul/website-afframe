@@ -51,7 +51,7 @@ export const WhyUsSection: React.FC<WhyUsSectionProps> = ({ section }) => {
           </h2>
           <p className="text-sm text-zinc-400">
             {section?.description ||
-              '5 Keunggulan khas yang membuat dokumentasi momen bersama AF Frame begitu berkesan, estetik, dan bernilai tinggi.'}
+              '5 Keunggulan khas yang membuat dokumentasi momen bersama AFFRAME begitu berkesan, estetik, dan bernilai tinggi.'}
           </p>
         </div>
 

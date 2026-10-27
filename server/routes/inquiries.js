@@ -59,7 +59,7 @@ router.post('/', async (req, res) => {
 
     if (!agreed_terms) {
       return res.status(400).json({
-        error: 'Anda harus menyetujui Syarat & Ketentuan AF Frame sebelum mengirim formulir.'
+        error: 'Anda harus menyetujui Syarat & Ketentuan AFFRAME sebelum mengirim formulir.'
       });
     }
 
@@ -117,7 +117,7 @@ router.post('/', async (req, res) => {
     }
 
     // Build natural Indonesian WhatsApp prefilled message
-    let waMessage = `Halo AF Frame, saya ingin konsultasi & booking sesi dokumentasi.\n\n`;
+    let waMessage = `Halo AFFRAME, saya ingin konsultasi & booking sesi dokumentasi.\n\n`;
     waMessage += `*Kode Inquiry:* ${inquiry_code}\n`;
     waMessage += `*Nama:* ${full_name}\n`;
     waMessage += `*WhatsApp:* ${whatsapp_number}\n`;
@@ -130,7 +130,7 @@ router.post('/', async (req, res) => {
     waMessage += `*Lokasi Acara:* ${location}\n`;
     if (budget_range) waMessage += `*Estimasi Budget:* ${budget_range}\n`;
     if (additional_notes) waMessage += `*Catatan/Konsep:* ${additional_notes}\n`;
-    waMessage += `\nMohon informasi ketersediaan jadwal tim AF Frame. Terima kasih!`;
+    waMessage += `\nMohon informasi ketersediaan jadwal tim AFFRAME. Terima kasih!`;
 
     const whatsappRedirectUrl = `https://wa.me/${cleanWaNumber}?text=${encodeURIComponent(waMessage)}`;
 

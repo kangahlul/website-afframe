@@ -201,7 +201,7 @@ export const WebsiteSectionManager: React.FC = () => {
             Website Section Manager
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Atur urutan, visibilitas, teks headline, latar belakang, dan tombol aksi pada landing page AF Frame.
+            Atur urutan, visibilitas, teks headline, latar belakang, dan tombol aksi pada landing page AFFRAME.
           </p>
         </div>
 

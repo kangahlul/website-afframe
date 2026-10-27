@@ -19,10 +19,10 @@ export const PrivacyPage: React.FC = () => {
               Privasi & Keamanan Data
             </span>
             <h1 className="font-serif text-3xl sm:text-5xl text-[#F8F6F0] font-light">
-              Kebijakan Privasi AF Frame
+              Kebijakan Privasi AFFRAME
             </h1>
             <p className="text-sm text-zinc-400">
-              Terakhir diperbarui: 2026. AF Frame berkomitmen menjaga kerahasiaan dan privasi data setiap klien kami.
+              Terakhir diperbarui: 2026. AFFRAME berkomitmen menjaga kerahasiaan dan privasi data setiap klien kami.
             </p>
           </div>
 
@@ -44,7 +44,7 @@ export const PrivacyPage: React.FC = () => {
             <section className="space-y-3">
               <h2 className="font-serif text-2xl text-[#F8F6F0]">3. Penggunaan Materi Portofolio</h2>
               <p>
-                Sesuai dengan Syarat & Ketentuan AF Frame, hasil dokumentasi foto dan video yang diproduksi dapat digunakan oleh AF Frame sebagai materi portofolio, promosi website, serta publikasi di media sosial resmi kami (@_afframe). Klien yang memiliki permohonan privasi khusus atau NDA (Non-Disclosure Agreement) dapat mendiskusikannya sebelum pembayaran uang muka diselesaikan.
+                Sesuai dengan Syarat & Ketentuan AFFRAME, hasil dokumentasi foto dan video yang diproduksi dapat digunakan oleh AFFRAME sebagai materi portofolio, promosi website, serta publikasi di media sosial resmi kami (@_afframe). Klien yang memiliki permohonan privasi khusus atau NDA (Non-Disclosure Agreement) dapat mendiskusikannya sebelum pembayaran uang muka diselesaikan.
               </p>
             </section>
 

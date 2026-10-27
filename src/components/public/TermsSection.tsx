@@ -42,7 +42,7 @@ export const TermsSection: React.FC<TermsSectionProps> = ({ section }) => {
           </h2>
           <p className="text-sm text-zinc-400 font-sans">
             {section?.description ||
-              'Kebijakan resmi operasional AF Frame demi kenyamanan dan kelancaran kerja sama dokumentasi.'}
+              'Kebijakan resmi operasional AFFRAME demi kenyamanan dan kelancaran kerja sama dokumentasi.'}
           </p>
         </div>
 
@@ -80,7 +80,7 @@ export const TermsSection: React.FC<TermsSectionProps> = ({ section }) => {
         <div className="mt-10 p-5 rounded-sm bg-[#131316] border border-amber-900/40 text-xs text-amber-200/80 flex items-center gap-3">
           <ShieldCheck className="w-5 h-5 text-[#C5A880] shrink-0" />
           <span>
-            Dengan melakukan transfer pembayaran uang muka (DP), klien secara otomatis menyetujui seluruh butir Syarat & Ketentuan AF Frame yang tertera di atas.
+            Dengan melakukan transfer pembayaran uang muka (DP), klien secara otomatis menyetujui seluruh butir Syarat & Ketentuan AFFRAME yang tertera di atas.
           </span>
         </div>
 

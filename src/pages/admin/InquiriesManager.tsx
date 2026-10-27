@@ -498,7 +498,7 @@ export const InquiriesManager: React.FC = () => {
             {/* Internal Staff Notes */}
             <div className="space-y-3 pt-2 border-t border-zinc-800">
               <h4 className="text-xs uppercase tracking-wider text-zinc-300 font-semibold">
-                Catatan Internal Tim AF Frame
+                Catatan Internal Tim AFFRAME
               </h4>
 
               {/* Notes list */}

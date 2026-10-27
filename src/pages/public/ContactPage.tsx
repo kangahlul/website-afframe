@@ -24,7 +24,7 @@ export const ContactPage: React.FC = () => {
               Konsultasi & Reservasi Jadwal
             </h1>
             <p className="text-sm sm:text-base text-zinc-400 font-light font-sans">
-              Tim AF Frame siap mendengarkan konsep acara Anda, mendiskusikan ketersediaan tanggal, dan menyiapkan paket dokumentasi terbaik.
+              Tim AFFRAME siap mendengarkan konsep acara Anda, mendiskusikan ketersediaan tanggal, dan menyiapkan paket dokumentasi terbaik.
             </p>
           </div>
 

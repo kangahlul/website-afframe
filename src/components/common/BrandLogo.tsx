@@ -15,7 +15,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 }) => {
   const { settings } = useSite();
 
-  const logoText = settings.logo_text || settings.brand_name || 'AF FRAME';
+  const logoText = settings.logo_text || settings.brand_name || 'AFFRAME';
   const logoSubtitle = settings.logo_subtitle || settings.tagline || 'Photography & Cinematic Production';
   const logoInitials =
     settings.logo_initials ||

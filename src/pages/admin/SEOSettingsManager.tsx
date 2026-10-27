@@ -20,7 +20,7 @@ export const SEOSettingsManager: React.FC = () => {
   useEffect(() => {
     if (settings) {
       setForm({
-        seo_title: settings.seo_title || 'AF Frame — Capturing Meaningful Moments | Photography & Cinematic Production',
+        seo_title: settings.seo_title || 'AFFRAME — Capturing Meaningful Moments | Photography & Cinematic Production',
         seo_description: settings.seo_description || 'Layanan dokumentasi foto & cinematic video profesional di Lamongan, Gresik, Surabaya.',
         og_image: settings.og_image || '',
         canonical_url: settings.canonical_url || 'https://afframe.com',
