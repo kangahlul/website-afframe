@@ -263,24 +263,25 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
             isPortrait ? (
               /* ========================================================
                  PORTRAIT 9:16 REELS CONTAINER (Mobile & Desktop Fit)
-                 Scales purely by available height so it never cuts off!
+                 Scales purely by available height & width preserving 9:16!
                  ======================================================== */
               <div
-                className="relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 flex items-center justify-center max-w-[90vw]"
+                className="relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 flex items-center justify-center aspect-[9/16] w-auto max-w-[85vw] sm:max-w-[380px] md:max-w-[400px] mx-auto"
                 style={{
-                  height: (isVideoMode && projectVideos.length > 1) ? 'calc(100dvh - 205px)' : 'calc(100dvh - 165px)',
-                  maxHeight: '560px',
-                  aspectRatio: '9/16',
+                  height: '100%',
+                  maxHeight: (isVideoMode && projectVideos.length > 1)
+                    ? 'min(calc(100dvh - 195px), 720px)'
+                    : 'min(calc(100dvh - 155px), 750px)',
                 }}
               >
                 {/* Smartphone Speaker Accent */}
-                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 sm:w-16 h-1 bg-zinc-700/60 rounded-full z-20 pointer-events-none" />
+                <div className="absolute top-2.5 left-1/2 transform -translate-x-1/2 w-14 sm:w-16 h-1 bg-zinc-700/60 rounded-full z-20 pointer-events-none" />
 
                 {embedUrl ? (
                   <iframe
                     src={embedUrl}
                     title={activeVideo?.title || project.title}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
@@ -291,7 +292,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     autoPlay
                     playsInline
                     loop
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                   />
                 )}
               </div>
@@ -300,9 +301,11 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                  LANDSCAPE 16:9 CINEMATIC CONTAINER
                  ======================================================== */
               <div
-                className="relative w-full max-w-4xl aspect-video bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-2xl flex items-center justify-center"
+                className="relative w-full max-w-4xl lg:max-w-5xl aspect-video bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-2xl flex items-center justify-center mx-auto"
                 style={{
-                  maxHeight: 'calc(100dvh - 160px)',
+                  maxHeight: (isVideoMode && projectVideos.length > 1)
+                    ? 'calc(100dvh - 195px)'
+                    : 'calc(100dvh - 155px)',
                 }}
               >
                 {embedUrl ? (

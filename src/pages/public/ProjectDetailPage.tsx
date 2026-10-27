@@ -165,12 +165,12 @@ export const ProjectDetailPage: React.FC = () => {
                             <iframe
                               src={getVideoEmbedUrl(vid.video_url)!}
                               title={vid.title || project.title}
-                              className="w-full h-full object-contain"
+                              className={`w-full h-full ${isPortrait ? 'object-cover' : 'object-contain'}`}
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                               allowFullScreen
                             />
                           ) : (
-                            <video src={vid.video_url} controls playsInline loop className="w-full h-full object-contain" />
+                            <video src={vid.video_url} controls playsInline loop className={`w-full h-full ${isPortrait ? 'object-cover' : 'object-contain'}`} />
                           )}
                         </div>
                       </div>
