@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, Image, Palette, Layers, Globe, FolderKanban,
   Tags, Package, Inbox, Info, Sparkles, HelpCircle, FileText,
-  MapPin, Settings, Search, UserCheck, LogOut, Menu, X, ExternalLink
+  MapPin, Settings, Search, UserCheck, LogOut, Menu, X, ExternalLink, Users
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
@@ -44,8 +44,9 @@ export const AdminLayout: React.FC = () => {
       title: 'Utama',
       items: [
         { label: 'Dashboard', path: '/admin', icon: <LayoutDashboard className="w-4 h-4" /> },
-        { label: 'Media Library', path: '/admin/media', icon: <Image className="w-4 h-4" /> },
+        { label: 'Kelola Pelanggan (CRM)', path: '/admin/clients', icon: <Users className="w-4 h-4" /> },
         { label: 'Inquiries & Booking', path: '/admin/inquiries', icon: <Inbox className="w-4 h-4" /> },
+        { label: 'Media Library', path: '/admin/media', icon: <Image className="w-4 h-4" /> },
       ]
     },
     {

@@ -153,6 +153,7 @@ export interface InquiryNote {
 export interface Inquiry {
   id: number;
   inquiry_code: string;
+  client_id?: number;
   full_name: string;
   whatsapp_number: string;
   email: string;
@@ -233,4 +234,32 @@ export interface DynamicPage {
   og_image_url: string;
   is_published: number;
   sort_order: number;
+}
+
+export interface Client {
+  id: number;
+  client_code: string;
+  full_name: string;
+  phone_whatsapp: string;
+  email?: string;
+  instagram_handle?: string;
+  company_brand?: string;
+  client_type: 'personal' | 'couple_wedding' | 'corporate' | 'student_graduation' | 'community_event';
+  address_city?: string;
+  status: 'lead' | 'active' | 'completed' | 'vip';
+  total_spend: number;
+  notes?: string;
+  booking_count?: number;
+  bookings?: Inquiry[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClientStats {
+  totalClients: number;
+  leadCount: number;
+  activeCount: number;
+  vipCount: number;
+  completedCount: number;
+  totalSpendSum: number;
 }

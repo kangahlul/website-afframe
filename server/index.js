@@ -31,6 +31,7 @@ app.use('/api/sections', require('./routes/sections'));
 app.use('/api/portfolio', require('./routes/portfolio'));
 app.use('/api/services', require('./routes/services'));
 app.use('/api/inquiries', require('./routes/inquiries'));
+app.use('/api/clients', require('./routes/clients'));
 app.use('/api/content', require('./routes/content'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 

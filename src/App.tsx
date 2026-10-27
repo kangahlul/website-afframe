@@ -26,6 +26,7 @@ import { PortfolioManager } from './pages/admin/PortfolioManager';
 import { PortfolioCategoriesManager } from './pages/admin/PortfolioCategoriesManager';
 import { ServicesPackagesManager } from './pages/admin/ServicesPackagesManager';
 import { InquiriesManager } from './pages/admin/InquiriesManager';
+import { ClientsManager } from './pages/admin/ClientsManager';
 import { AboutManager } from './pages/admin/AboutManager';
 import { BenefitsManager } from './pages/admin/BenefitsManager';
 import { FAQManager } from './pages/admin/FAQManager';
@@ -69,6 +70,8 @@ export function App() {
             {/* Admin Panel (Protected) */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<DashboardOverview />} />
+              <Route path="clients" element={<ClientsManager />} />
+              <Route path="inquiries" element={<InquiriesManager />} />
               <Route path="media" element={<MediaLibrary />} />
               <Route path="brand" element={<BrandIdentityManager />} />
               <Route path="sections" element={<WebsiteSectionManager />} />
@@ -76,7 +79,6 @@ export function App() {
               <Route path="portfolio" element={<PortfolioManager />} />
               <Route path="categories" element={<PortfolioCategoriesManager />} />
               <Route path="services" element={<ServicesPackagesManager />} />
-              <Route path="inquiries" element={<InquiriesManager />} />
               <Route path="about" element={<AboutManager />} />
               <Route path="benefits" element={<BenefitsManager />} />
               <Route path="faq" element={<FAQManager />} />

@@ -28,6 +28,7 @@ const sectionsRoute = require('../server/routes/sections');
 const portfolioRoute = require('../server/routes/portfolio');
 const servicesRoute = require('../server/routes/services');
 const inquiriesRoute = require('../server/routes/inquiries');
+const clientsRoute = require('../server/routes/clients');
 const contentRoute = require('../server/routes/content');
 const dashboardRoute = require('../server/routes/dashboard');
 
@@ -52,6 +53,9 @@ app.use('/services', servicesRoute);
 
 app.use('/api/inquiries', inquiriesRoute);
 app.use('/inquiries', inquiriesRoute);
+
+app.use('/api/clients', clientsRoute);
+app.use('/clients', clientsRoute);
 
 app.use('/api/content', contentRoute);
 app.use('/content', contentRoute);
