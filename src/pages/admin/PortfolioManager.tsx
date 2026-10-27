@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FolderKanban, Plus, Search, Edit3, Trash2, Eye, EyeOff,
-  Star, ExternalLink, Image, Film, Check, X, Upload
+  Star, ExternalLink, Image, Film, Check, X, Upload, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { PortfolioProject, PortfolioCategory } from '../../types';
 import { api } from '../../lib/api';
@@ -50,6 +50,18 @@ export const PortfolioManager: React.FC = () => {
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoOrientation, setNewVideoOrientation] = useState<'portrait' | 'landscape' | 'square'>('portrait');
 
+  // Video Item In-Place Edit State
+  const [editingVideoIndex, setEditingVideoIndex] = useState<number | null>(null);
+  const [editVideoTitle, setEditVideoTitle] = useState('');
+  const [editVideoUrl, setEditVideoUrl] = useState('');
+  const [editVideoOrientation, setEditVideoOrientation] = useState<'portrait' | 'landscape' | 'square'>('portrait');
+  const [isUploadingEditVideo, setIsUploadingEditVideo] = useState(false);
+
+  // Gallery Photo In-Place Edit / Replace State
+  const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
+  const [editPhotoUrl, setEditPhotoUrl] = useState('');
+  const [isUploadingEditPhoto, setIsUploadingEditPhoto] = useState(false);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -92,6 +104,11 @@ export const PortfolioManager: React.FC = () => {
     setNewVideoTitle('');
     setNewVideoUrl('');
     setNewVideoOrientation('portrait');
+    setEditingVideoIndex(null);
+    setEditVideoTitle('');
+    setEditVideoUrl('');
+    setEditingPhotoIndex(null);
+    setEditPhotoUrl('');
     setIsFeatured(false);
     setIsPublished(true);
     setGalleryImages([]);
@@ -134,6 +151,11 @@ export const PortfolioManager: React.FC = () => {
     setNewVideoTitle('');
     setNewVideoUrl('');
     setNewVideoOrientation('portrait');
+    setEditingVideoIndex(null);
+    setEditVideoTitle('');
+    setEditVideoUrl('');
+    setEditingPhotoIndex(null);
+    setEditPhotoUrl('');
     setIsFeatured(p.is_featured === 1);
     setIsPublished(p.is_published === 1);
     setGalleryImages(p.images ? p.images.map(img => img.image_url) : []);
@@ -160,7 +182,75 @@ export const PortfolioManager: React.FC = () => {
   };
 
   const removeVideoItem = (index: number) => {
+    if (editingVideoIndex === index) {
+      setEditingVideoIndex(null);
+    } else if (editingVideoIndex !== null && editingVideoIndex > index) {
+      setEditingVideoIndex(editingVideoIndex - 1);
+    }
     setVideos(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  const startEditVideo = (index: number) => {
+    const vid = videos[index];
+    if (!vid) return;
+    setEditingVideoIndex(index);
+    setEditVideoTitle(vid.title);
+    setEditVideoUrl(vid.video_url);
+    setEditVideoOrientation(vid.orientation || 'portrait');
+  };
+
+  const cancelEditVideo = () => {
+    setEditingVideoIndex(null);
+    setEditVideoTitle('');
+    setEditVideoUrl('');
+  };
+
+  const saveEditVideo = () => {
+    if (editingVideoIndex === null) return;
+    if (!editVideoUrl.trim()) {
+      alert('Tautan URL video tidak boleh kosong.');
+      return;
+    }
+    const updatedVideos = [...videos];
+    updatedVideos[editingVideoIndex] = {
+      ...updatedVideos[editingVideoIndex],
+      title: editVideoTitle.trim() || `Video ${editingVideoIndex + 1}`,
+      video_url: editVideoUrl.trim(),
+      orientation: editVideoOrientation
+    };
+    setVideos(updatedVideos);
+    setEditingVideoIndex(null);
+  };
+
+  const handleUploadEditVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingEditVideo(true);
+      const res = await api.uploadFiles([file], 'portfolio');
+      if (res.assets && res.assets[0]) {
+        setEditVideoUrl(res.assets[0].url);
+        if (!editVideoTitle.trim()) {
+          setEditVideoTitle(file.name.replace(/\.[^/.]+$/, ''));
+        }
+      }
+    } catch (err: any) {
+      alert(err.message || 'Gagal mengunggah video pengganti.');
+    } finally {
+      setIsUploadingEditVideo(false);
+    }
+  };
+
+  const moveVideoItem = (index: number, direction: 'up' | 'down') => {
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= videos.length) return;
+    const nextVideos = [...videos];
+    const [moved] = nextVideos.splice(index, 1);
+    nextVideos.splice(targetIdx, 0, moved);
+    setVideos(nextVideos);
+    if (editingVideoIndex === index) {
+      setEditingVideoIndex(targetIdx);
+    }
   };
 
   const handleUploadVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -223,7 +313,63 @@ export const PortfolioManager: React.FC = () => {
   };
 
   const removeGalleryImage = (index: number) => {
+    if (editingPhotoIndex === index) {
+      setEditingPhotoIndex(null);
+    } else if (editingPhotoIndex !== null && editingPhotoIndex > index) {
+      setEditingPhotoIndex(editingPhotoIndex - 1);
+    }
     setGalleryImages(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  const startEditPhoto = (index: number) => {
+    setEditingPhotoIndex(index);
+    setEditPhotoUrl(galleryImages[index] || '');
+  };
+
+  const cancelEditPhoto = () => {
+    setEditingPhotoIndex(null);
+    setEditPhotoUrl('');
+  };
+
+  const saveEditPhoto = () => {
+    if (editingPhotoIndex === null) return;
+    if (!editPhotoUrl.trim()) {
+      alert('URL foto tidak boleh kosong.');
+      return;
+    }
+    const updatedGallery = [...galleryImages];
+    updatedGallery[editingPhotoIndex] = normalizeMediaUrl(editPhotoUrl.trim());
+    setGalleryImages(updatedGallery);
+    setEditingPhotoIndex(null);
+    setEditPhotoUrl('');
+  };
+
+  const handleUploadEditPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingEditPhoto(true);
+      const res = await api.uploadFiles([file], 'portfolio');
+      if (res.assets && res.assets[0]) {
+        setEditPhotoUrl(res.assets[0].url);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Gagal mengunggah foto pengganti.');
+    } finally {
+      setIsUploadingEditPhoto(false);
+    }
+  };
+
+  const movePhotoItem = (index: number, direction: 'left' | 'right') => {
+    const targetIdx = direction === 'left' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= galleryImages.length) return;
+    const nextGallery = [...galleryImages];
+    const [moved] = nextGallery.splice(index, 1);
+    nextGallery.splice(targetIdx, 0, moved);
+    setGalleryImages(nextGallery);
+    if (editingPhotoIndex === index) {
+      setEditingPhotoIndex(targetIdx);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -515,28 +661,31 @@ export const PortfolioManager: React.FC = () => {
 
                         {/* Actions */}
                         <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1.5">
                             <Link
                               to={`/portfolio/${p.slug}`}
                               target="_blank"
-                              className="p-1.5 text-zinc-400 hover:text-white"
-                              title="Lihat di Web"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[11px] transition-colors"
+                              title="Buka Halaman Karya di Web Publik"
                             >
-                              <ExternalLink className="w-4 h-4" />
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span className="hidden xl:inline">Lihat</span>
                             </Link>
                             <button
                               onClick={() => openEdit(p)}
-                              className="p-1.5 text-zinc-400 hover:text-[#C5A880]"
-                              title="Edit Proyek"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#C5A880]/15 hover:bg-[#C5A880]/25 text-[#E2D2BC] border border-[#C5A880]/40 rounded text-[11px] font-semibold transition-colors cursor-pointer"
+                              title="Edit Detail, Video, dan Galeri Foto Acara Ini"
                             >
-                              <Edit3 className="w-4 h-4" />
+                              <Edit3 className="w-3.5 h-3.5 text-[#C5A880]" />
+                              <span>Edit</span>
                             </button>
                             <button
                               onClick={() => handleDelete(p.id, p.title)}
-                              className="p-1.5 text-zinc-600 hover:text-red-400"
-                              title="Hapus Proyek"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-600/30 rounded text-[11px] transition-colors cursor-pointer"
+                              title="Hapus Proyek Ini"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span className="hidden xl:inline">Hapus</span>
                             </button>
                           </div>
                         </td>
@@ -702,46 +851,205 @@ export const PortfolioManager: React.FC = () => {
 
                   {/* List of currently added videos */}
                   {videos.length > 0 ? (
-                    <div className="space-y-2.5">
-                      {videos.map((vid, idx) => (
-                        <div
-                          key={idx}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-[#18181D] border border-zinc-800 rounded-sm"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center shrink-0">
-                              #{idx + 1}
-                            </span>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h5 className="font-semibold text-white text-xs truncate">{vid.title}</h5>
-                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                                  vid.orientation === 'portrait'
-                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                    : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
-                                }`}>
-                                  {vid.orientation === 'portrait' ? 'Reels 9:16' : vid.orientation === 'landscape' ? '16:9 Landscape' : '4:5 Standard'}
+                    <div className="space-y-3">
+                      {videos.map((vid, idx) => {
+                        const isEditingThis = editingVideoIndex === idx;
+
+                        if (isEditingThis) {
+                          return (
+                            <div
+                              key={idx}
+                              className="p-3.5 bg-amber-500/10 border-2 border-amber-500/60 rounded-sm space-y-3 shadow-lg"
+                            >
+                              <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                                <span className="text-amber-300 font-bold text-xs flex items-center gap-1.5">
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  Edit Data Video #{idx + 1}
                                 </span>
+                                <button
+                                  type="button"
+                                  onClick={cancelEditVideo}
+                                  className="text-zinc-400 hover:text-white text-[11px] flex items-center gap-1 cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  <span>Batal</span>
+                                </button>
                               </div>
-                              <p className="text-[10px] text-zinc-500 font-mono truncate max-w-md mt-0.5">
-                                {vid.video_url}
-                              </p>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-zinc-300 block mb-1 text-[11px] font-medium">Judul / Keterangan Video</label>
+                                  <input
+                                    type="text"
+                                    value={editVideoTitle}
+                                    onChange={e => setEditVideoTitle(e.target.value)}
+                                    placeholder="Misal: Reels Teaser 9:16"
+                                    className="w-full px-2.5 py-1.5 bg-[#18181D] border border-amber-500/40 rounded text-zinc-200 text-xs focus:outline-none focus:border-amber-400"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-zinc-300 block mb-1 text-[11px] font-medium">Format Orientasi Video</label>
+                                  <div className="grid grid-cols-3 gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditVideoOrientation('portrait')}
+                                      className={`py-1.5 px-2 rounded text-[11px] font-medium text-center transition-colors cursor-pointer ${
+                                        editVideoOrientation === 'portrait'
+                                          ? 'bg-amber-500 text-black font-bold shadow'
+                                          : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                                      }`}
+                                    >
+                                      📱 9:16 Reels
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditVideoOrientation('landscape')}
+                                      className={`py-1.5 px-2 rounded text-[11px] font-medium text-center transition-colors cursor-pointer ${
+                                        editVideoOrientation === 'landscape'
+                                          ? 'bg-amber-500 text-black font-bold shadow'
+                                          : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                                      }`}
+                                    >
+                                      🖥️ 16:9 Film
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditVideoOrientation('square')}
+                                      className={`py-1.5 px-2 rounded text-[11px] font-medium text-center transition-colors cursor-pointer ${
+                                        editVideoOrientation === 'square'
+                                          ? 'bg-amber-500 text-black font-bold shadow'
+                                          : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                                      }`}
+                                    >
+                                      🔲 4:5 Feed
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="text-zinc-300 block mb-1 text-[11px] font-medium">Tautan URL Video atau Unggah Berkas MP4 Pengganti</label>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="url"
+                                    value={editVideoUrl}
+                                    onChange={e => setEditVideoUrl(e.target.value)}
+                                    placeholder="Tautan YouTube Shorts, Google Drive, atau MP4..."
+                                    className="w-full px-2.5 py-1.5 bg-[#18181D] border border-amber-500/40 rounded text-zinc-200 text-xs focus:outline-none focus:border-amber-400 font-mono"
+                                  />
+                                  <label
+                                    className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded cursor-pointer shrink-0 flex items-center gap-1.5 text-xs transition-colors"
+                                    title="Unggah Berkas MP4 Pengganti"
+                                  >
+                                    <Upload className="w-3.5 h-3.5" />
+                                    <span>{isUploadingEditVideo ? 'Mengunggah...' : 'Unggah MP4'}</span>
+                                    <input
+                                      type="file"
+                                      accept="video/mp4,video/webm"
+                                      onChange={handleUploadEditVideo}
+                                      disabled={isUploadingEditVideo}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-end gap-2 pt-1 border-t border-amber-500/20">
+                                <button
+                                  type="button"
+                                  onClick={cancelEditVideo}
+                                  className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs cursor-pointer"
+                                >
+                                  Batal
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={saveEditVideo}
+                                  className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded text-xs shadow-md transition-colors cursor-pointer"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Simpan Perubahan Video</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div
+                            key={idx}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-[#18181D] border border-zinc-800 hover:border-zinc-700 rounded-sm transition-colors"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center shrink-0">
+                                #{idx + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h5 className="font-semibold text-white text-xs truncate">{vid.title}</h5>
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                    vid.orientation === 'portrait'
+                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                      : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                                  }`}>
+                                    {vid.orientation === 'portrait' ? 'Reels 9:16' : vid.orientation === 'landscape' ? '16:9 Landscape' : '4:5 Standard'}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-zinc-500 font-mono truncate max-w-md mt-0.5">
+                                  {vid.video_url}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                              {/* Reorder Buttons */}
+                              <div className="flex items-center border border-zinc-800 rounded bg-[#141418] mr-1">
+                                <button
+                                  type="button"
+                                  disabled={idx === 0}
+                                  onClick={() => moveVideoItem(idx, 'up')}
+                                  className="p-1 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                  title="Pindahkan Urutan ke Atas"
+                                >
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={idx === videos.length - 1}
+                                  onClick={() => moveVideoItem(idx, 'down')}
+                                  className="p-1 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                  title="Pindahkan Urutan ke Bawah"
+                                >
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {/* Edit Video Button */}
+                              <button
+                                type="button"
+                                onClick={() => startEditVideo(idx)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded text-[11px] font-medium transition-colors cursor-pointer"
+                                title="Edit Judul, URL, atau Format Video Ini"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>Edit Video</span>
+                              </button>
+
+                              {/* Delete Video Button */}
+                              <button
+                                type="button"
+                                onClick={() => removeVideoItem(idx)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-600/15 hover:bg-red-600/30 text-red-300 border border-red-600/30 rounded text-[11px] font-medium transition-colors cursor-pointer"
+                                title="Hapus Video Ini dari Acara"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Hapus Video</span>
+                              </button>
                             </div>
                           </div>
-
-                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => removeVideoItem(idx)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-600/40 rounded text-[11px] font-medium transition-colors cursor-pointer"
-                              title="Hapus Video Ini dari Acara"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Hapus Video</span>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="p-4 text-center text-[11px] text-zinc-500 bg-[#16161A] border border-dashed border-zinc-800 rounded">
@@ -884,7 +1192,7 @@ export const PortfolioManager: React.FC = () => {
                       Galeri Foto Dokumentasi Acara ({galleryImages.length} Foto)
                     </label>
                     <span className="text-[10px] text-zinc-400">
-                      Klik tombol merah tong sampah pada masing-masing foto untuk menghapusnya
+                      Kelola foto dokumentasi: Anda dapat Mengedit/Ganti foto, mengatur urutan, atau menghapusnya.
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -894,6 +1202,7 @@ export const PortfolioManager: React.FC = () => {
                         onClick={() => {
                           if (window.confirm('Yakin ingin menghapus semua foto lampiran acara ini?')) {
                             setGalleryImages([]);
+                            setEditingPhotoIndex(null);
                           }
                         }}
                         className="px-2.5 py-1 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-600/40 rounded text-[11px] cursor-pointer"
@@ -901,7 +1210,7 @@ export const PortfolioManager: React.FC = () => {
                         Hapus Semua Foto
                       </button>
                     )}
-                    <label className="inline-flex items-center gap-1.5 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer text-[11px]">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded cursor-pointer text-[11px] font-medium transition-colors">
                       <Upload className="w-3.5 h-3.5" />
                       <span>Unggah Banyak Foto Sekaligus</span>
                       <input type="file" multiple accept="image/*" onChange={handleUploadGallery} className="hidden" />
@@ -909,28 +1218,153 @@ export const PortfolioManager: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Gallery thumbnails grid with PROMINENT always-visible delete buttons */}
-                {galleryImages.length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 p-3 bg-[#18181D] border border-zinc-800 rounded-sm">
-                    {galleryImages.map((imgUrl, idx) => (
-                      <div key={idx} className="relative aspect-square rounded overflow-hidden bg-black border border-zinc-700 group shadow">
-                        <img src={imgUrl} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
-                        
-                        {/* Always visible clear delete button */}
-                        <button
-                          type="button"
-                          onClick={() => removeGalleryImage(idx)}
-                          className="absolute top-1 right-1 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg transition-transform hover:scale-110 cursor-pointer"
-                          title="Hapus foto ini"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-
-                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/70 text-zinc-300 rounded text-[9px] font-mono">
-                          #{idx + 1}
+                {/* In-Place Edit / Replace Active Photo Box */}
+                {editingPhotoIndex !== null && (
+                  <div className="p-3.5 bg-[#1C1C22] border-2 border-[#C5A880] rounded-sm space-y-3 shadow-xl">
+                    <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Edit3 className="w-4 h-4 text-[#C5A880]" />
+                        <span className="text-[#C5A880] font-bold text-xs">
+                          Edit / Ganti Foto #{editingPhotoIndex + 1}
                         </span>
                       </div>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={cancelEditPhoto}
+                        className="text-zinc-400 hover:text-white text-xs flex items-center gap-1 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Batal</span>
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4 items-center">
+                      {/* Live Thumbnail Preview */}
+                      <div className="w-24 h-24 rounded overflow-hidden bg-black border border-zinc-700 shrink-0 relative shadow">
+                        <img
+                          src={editPhotoUrl || galleryImages[editingPhotoIndex]}
+                          alt="Preview Foto"
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/80 text-[9px] text-[#C5A880] rounded font-mono">
+                          #{editingPhotoIndex + 1}
+                        </span>
+                      </div>
+
+                      {/* URL input and upload replacement button */}
+                      <div className="flex-1 space-y-2 w-full">
+                        <label className="text-zinc-300 text-[11px] block font-medium">
+                          Masukkan URL Foto Baru atau Unggah Berkas Pengganti:
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editPhotoUrl}
+                            onChange={e => setEditPhotoUrl(e.target.value)}
+                            placeholder="URL foto pengganti..."
+                            className="flex-1 px-3 py-1.5 bg-[#18181D] border border-[#C5A880]/50 rounded text-zinc-200 text-xs focus:outline-none focus:border-[#C5A880] font-mono"
+                          />
+                          <label className="px-3 py-1.5 bg-[#C5A880] hover:bg-[#B39366] text-[#0C0C0D] font-bold rounded cursor-pointer shrink-0 flex items-center gap-1.5 text-xs transition-colors shadow">
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>{isUploadingEditPhoto ? 'Mengunggah...' : 'Unggah Foto'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleUploadEditPhoto}
+                              disabled={isUploadingEditPhoto}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+                      <button
+                        type="button"
+                        onClick={cancelEditPhoto}
+                        className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={saveEditPhoto}
+                        className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded text-xs shadow-md transition-colors cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Terapkan Perubahan Foto</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Gallery thumbnails grid with clear Edit, Move, and Delete buttons */}
+                {galleryImages.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 p-3 bg-[#18181D] border border-zinc-800 rounded-sm">
+                    {galleryImages.map((imgUrl, idx) => {
+                      const isEditingThisPhoto = editingPhotoIndex === idx;
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`relative aspect-square rounded overflow-hidden bg-black border transition-all ${
+                            isEditingThisPhoto
+                              ? 'border-2 border-[#C5A880] ring-2 ring-[#C5A880]/40 scale-[1.02]'
+                              : 'border-zinc-700 hover:border-zinc-500'
+                          } shadow`}
+                        >
+                          <img src={imgUrl} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+
+                          {/* Action Buttons: Edit and Delete */}
+                          <div className="absolute top-1 right-1 flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => startEditPhoto(idx)}
+                              className="p-1 bg-amber-500 hover:bg-amber-400 text-black rounded-full shadow-lg transition-transform hover:scale-110 cursor-pointer"
+                              title="Edit / Ganti Foto Ini"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeGalleryImage(idx)}
+                              className="p-1 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg transition-transform hover:scale-110 cursor-pointer"
+                              title="Hapus Foto Ini"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          {/* Reorder and Index at bottom */}
+                          <div className="absolute bottom-1 inset-x-1 flex items-center justify-between pointer-events-none">
+                            <span className="px-1.5 py-0.5 bg-black/80 text-zinc-300 rounded text-[9px] font-mono pointer-events-auto">
+                              #{idx + 1}
+                            </span>
+                            <div className="flex items-center gap-0.5 bg-black/80 rounded p-0.5 pointer-events-auto">
+                              <button
+                                type="button"
+                                disabled={idx === 0}
+                                onClick={() => movePhotoItem(idx, 'left')}
+                                className="text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                title="Geser ke Kiri"
+                              >
+                                ◀
+                              </button>
+                              <button
+                                type="button"
+                                disabled={idx === galleryImages.length - 1}
+                                onClick={() => movePhotoItem(idx, 'right')}
+                                className="text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                title="Geser ke Kanan"
+                              >
+                                ▶
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
