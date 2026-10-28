@@ -2,13 +2,7 @@ import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { X, ChevronLeft, ChevronRight, Film, Image as ImageIcon, MessageCircle, ExternalLink, Play } from 'lucide-react';
 import { PortfolioProject, PortfolioVideo } from '../../types';
-import {
-  getVideoEmbedUrl,
-  normalizeMediaUrl,
-  getDirectVideoUrl,
-  isGoogleDriveUrl,
-  getGoogleDrivePreviewUrl,
-} from '../../lib/mediaUtils';
+import { getVideoEmbedUrl, normalizeMediaUrl } from '../../lib/mediaUtils';
 
 interface PortfolioLightboxModalProps {
   projects: PortfolioProject[];
@@ -28,7 +22,6 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState<number>(0);
   const [activeMediaMode, setActiveMediaMode] = useState<'video' | 'photo'>('video');
-  const [videoError, setVideoError] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
   const total = projects.length;
@@ -38,7 +31,6 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   useEffect(() => {
     setSelectedPhotoIndex(0);
     setSelectedVideoIndex(0);
-    setVideoError(false);
     if (!project) return;
     if (project.media_type === 'photo') {
       setActiveMediaMode('photo');
@@ -133,15 +125,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const activeVideo: PortfolioVideo | undefined = projectVideos[selectedVideoIndex] || projectVideos[0];
   const activeVideoUrl = activeVideo?.video_url || '';
   const isPortrait = (activeVideo?.orientation || project.orientation || 'portrait') === 'portrait';
-  const isDriveVideo = isGoogleDriveUrl(activeVideoUrl);
-  const directVideoUrl = getDirectVideoUrl(activeVideoUrl);
-  const embedUrl = isDriveVideo ? null : getVideoEmbedUrl(activeVideoUrl);
-  const driveFallbackUrl = isDriveVideo ? getGoogleDrivePreviewUrl(activeVideoUrl) : null;
-
-  // Reset video error when switching video tabs
-  useEffect(() => {
-    setVideoError(false);
-  }, [selectedVideoIndex, activeVideoUrl]);
+  const embedUrl = activeVideoUrl ? getVideoEmbedUrl(activeVideoUrl) : null;
 
   const currentPhotoUrl = allImages[selectedPhotoIndex] || project.cover_image_url;
 
@@ -279,46 +263,24 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
             isPortrait ? (
               /* ========================================================
                  PORTRAIT 9:16 REELS CONTAINER (Mobile & Desktop Fit)
-                 Scales purely by available height & width preserving 9:16!
+                 Tinggi Adaptif Otomatis (100dvh) & Video Tampak Penuh
                  ======================================================== */
               <div
-                className="relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 mx-auto select-none shrink-0 flex items-center justify-center"
+                className="relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 flex items-center justify-center max-w-[90vw] mx-auto select-none"
                 style={{
-                  height: (isVideoMode && projectVideos.length > 1)
-                    ? 'min(calc(100dvh - 195px), 720px)'
-                    : 'min(calc(100dvh - 155px), 750px)',
-                  width: (isVideoMode && projectVideos.length > 1)
-                    ? 'min(calc(min(calc(100dvh - 195px), 720px) * 9 / 16), calc(100vw - 32px), 400px)'
-                    : 'min(calc(min(calc(100dvh - 155px), 750px) * 9 / 16), calc(100vw - 32px), 400px)',
-                  aspectRatio: '9 / 16',
+                  height: (isVideoMode && projectVideos.length > 1) ? 'calc(100dvh - 200px)' : 'calc(100dvh - 160px)',
+                  maxHeight: '680px',
+                  aspectRatio: '9/16',
                 }}
               >
                 {/* Smartphone Speaker Accent */}
                 <div className="absolute top-2.5 left-1/2 transform -translate-x-1/2 w-14 sm:w-16 h-1 bg-zinc-700/60 rounded-full z-20 pointer-events-none" />
 
-                {isDriveVideo ? (
-                  /* Google Drive 16:9 player horizontal centering to eliminate pillarboxes & perfectly center the 9:16 video */
-                  <iframe
-                    src={driveFallbackUrl || activeVideoUrl}
-                    title={activeVideo?.title || project.title}
-                    className="border-0 pointer-events-auto"
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      height: '100%',
-                      width: 'calc(100% * 256 / 81)',
-                      maxWidth: 'none',
-                    }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
-                ) : embedUrl ? (
+                {embedUrl ? (
                   <iframe
                     src={embedUrl}
                     title={activeVideo?.title || project.title}
-                    className="w-full h-full object-cover border-0"
+                    className="w-full h-full border-0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
@@ -330,12 +292,8 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     autoPlay
                     playsInline
                     loop
-                    className="w-full h-full object-cover"
-                    style={{ objectPosition: 'center center' }}
-                  >
-                    <source src={activeVideoUrl} type="video/mp4" />
-                    <source src={activeVideoUrl} />
-                  </video>
+                    className="w-full h-full object-contain"
+                  />
                 )}
               </div>
             ) : (
@@ -346,19 +304,11 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                 className="relative w-full max-w-4xl lg:max-w-5xl aspect-video bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-2xl flex items-center justify-center mx-auto"
                 style={{
                   maxHeight: (isVideoMode && projectVideos.length > 1)
-                    ? 'calc(100dvh - 195px)'
-                    : 'calc(100dvh - 155px)',
+                    ? 'calc(100dvh - 200px)'
+                    : 'calc(100dvh - 160px)',
                 }}
               >
-                {isDriveVideo ? (
-                  <iframe
-                    src={driveFallbackUrl || activeVideoUrl}
-                    title={activeVideo?.title || project.title}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
-                ) : embedUrl ? (
+                {embedUrl ? (
                   <iframe
                     src={embedUrl}
                     title={activeVideo?.title || project.title}
@@ -374,11 +324,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     autoPlay
                     playsInline
                     className="w-full h-full object-contain"
-                    style={{ objectPosition: 'center center' }}
-                  >
-                    <source src={activeVideoUrl} type="video/mp4" />
-                    <source src={activeVideoUrl} />
-                  </video>
+                  />
                 )}
               </div>
             )

@@ -5,13 +5,7 @@ import { Footer } from '../../components/public/Footer';
 import { ArrowLeft, Calendar, MapPin, User, Eye, Play, ArrowUpRight, X } from 'lucide-react';
 import { PortfolioProject } from '../../types';
 import { api } from '../../lib/api';
-import {
-  getVideoEmbedUrl,
-  normalizeMediaUrl,
-  getDirectVideoUrl,
-  isGoogleDriveUrl,
-  getGoogleDrivePreviewUrl,
-} from '../../lib/mediaUtils';
+import { getVideoEmbedUrl, normalizeMediaUrl } from '../../lib/mediaUtils';
 
 export const ProjectDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -151,9 +145,7 @@ export const ProjectDetailPage: React.FC = () => {
                     : [{ title: 'Video Utama', video_url: project.featured_video_url, orientation: project.orientation || 'portrait' }]
                   ).map((vid, idx) => {
                     const isPortrait = vid.orientation === 'portrait';
-                    const isDrive = isGoogleDriveUrl(vid.video_url);
-                    const embedUrl = isDrive ? null : getVideoEmbedUrl(vid.video_url);
-                    const directUrl = getDirectVideoUrl(vid.video_url);
+                    const embedUrl = getVideoEmbedUrl(vid.video_url);
                     return (
                       <div key={idx} className="space-y-3">
                         <div className="flex items-center gap-2">
@@ -165,51 +157,27 @@ export const ProjectDetailPage: React.FC = () => {
                           </h4>
                         </div>
 
-                        <div className={`rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl relative flex items-center justify-center ${
+                        <div className={`rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl flex items-center justify-center ${
                           isPortrait
                             ? 'w-full max-w-[340px] sm:max-w-[380px] aspect-[9/16] mx-auto border-2 border-[#C5A880]/40'
                             : 'w-full max-w-4xl mx-auto aspect-video'
                         }`}>
-                          {isDrive ? (
-                            <iframe
-                              src={getGoogleDrivePreviewUrl(vid.video_url)!}
-                              title={vid.title || project.title}
-                              className="border-0 pointer-events-auto"
-                              style={isPortrait ? {
-                                position: 'absolute',
-                                top: 0,
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                height: '100%',
-                                width: 'calc(100% * 256 / 81)',
-                                maxWidth: 'none',
-                              } : {
-                                width: '100%',
-                                height: '100%',
-                              }}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                            />
-                          ) : embedUrl ? (
+                          {embedUrl ? (
                             <iframe
                               src={embedUrl}
                               title={vid.title || project.title}
-                              className={`w-full h-full ${isPortrait ? 'object-cover' : 'object-contain'} border-0`}
+                              className="w-full h-full border-0"
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                               allowFullScreen
                             />
                           ) : (
                             <video
-                              src={directUrl}
+                              src={vid.video_url}
                               controls
                               playsInline
                               loop
-                              className={`w-full h-full ${isPortrait ? 'object-cover' : 'object-contain'}`}
-                              style={{ objectPosition: 'center center' }}
-                            >
-                              <source src={directUrl} type="video/mp4" />
-                              <source src={directUrl} />
-                            </video>
+                              className="w-full h-full object-contain"
+                            />
                           )}
                         </div>
                       </div>
