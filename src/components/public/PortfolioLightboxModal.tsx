@@ -2,7 +2,13 @@ import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { X, ChevronLeft, ChevronRight, Film, Image as ImageIcon, MessageCircle, ExternalLink, Play } from 'lucide-react';
 import { PortfolioProject, PortfolioVideo } from '../../types';
-import { getVideoEmbedUrl, normalizeMediaUrl } from '../../lib/mediaUtils';
+import {
+  getVideoEmbedUrl,
+  normalizeMediaUrl,
+  getDirectVideoUrl,
+  isGoogleDriveUrl,
+  getGoogleDrivePreviewUrl,
+} from '../../lib/mediaUtils';
 
 interface PortfolioLightboxModalProps {
   projects: PortfolioProject[];
@@ -22,6 +28,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState<number>(0);
   const [activeMediaMode, setActiveMediaMode] = useState<'video' | 'photo'>('video');
+  const [videoLoadFailed, setVideoLoadFailed] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
   const total = projects.length;
@@ -31,6 +38,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   useEffect(() => {
     setSelectedPhotoIndex(0);
     setSelectedVideoIndex(0);
+    setVideoLoadFailed(false);
     if (!project) return;
     if (project.media_type === 'photo') {
       setActiveMediaMode('photo');
@@ -125,7 +133,14 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const activeVideo: PortfolioVideo | undefined = projectVideos[selectedVideoIndex] || projectVideos[0];
   const activeVideoUrl = activeVideo?.video_url || '';
   const isPortrait = (activeVideo?.orientation || project.orientation || 'portrait') === 'portrait';
-  const embedUrl = activeVideoUrl ? getVideoEmbedUrl(activeVideoUrl) : null;
+  const isDriveVideo = isGoogleDriveUrl(activeVideoUrl);
+  const directVideoUrl = getDirectVideoUrl(activeVideoUrl);
+  const embedUrl = !isDriveVideo ? getVideoEmbedUrl(activeVideoUrl) : null;
+  const driveFallbackUrl = isDriveVideo ? getGoogleDrivePreviewUrl(activeVideoUrl) : null;
+
+  useEffect(() => {
+    setVideoLoadFailed(false);
+  }, [selectedVideoIndex, activeVideoUrl]);
 
   const currentPhotoUrl = allImages[selectedPhotoIndex] || project.cover_image_url;
 
@@ -284,15 +299,28 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
-                ) : (
+                ) : !videoLoadFailed ? (
                   <video
-                    key={activeVideoUrl}
-                    src={activeVideoUrl}
+                    key={directVideoUrl}
+                    src={directVideoUrl}
                     controls
                     autoPlay
                     playsInline
                     loop
-                    className="w-full h-full object-contain"
+                    onError={() => setVideoLoadFailed(true)}
+                    className="w-full h-full object-cover"
+                    style={{ objectPosition: 'center center' }}
+                  >
+                    <source src={directVideoUrl} type="video/mp4" />
+                    <source src={directVideoUrl} />
+                  </video>
+                ) : (
+                  <iframe
+                    src={driveFallbackUrl || activeVideoUrl}
+                    title={activeVideo?.title || project.title}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
                   />
                 )}
               </div>
@@ -316,14 +344,27 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
-                ) : (
+                ) : !videoLoadFailed ? (
                   <video
-                    key={activeVideoUrl}
-                    src={activeVideoUrl}
+                    key={directVideoUrl}
+                    src={directVideoUrl}
                     controls
                     autoPlay
                     playsInline
+                    onError={() => setVideoLoadFailed(true)}
                     className="w-full h-full object-contain"
+                    style={{ objectPosition: 'center center' }}
+                  >
+                    <source src={directVideoUrl} type="video/mp4" />
+                    <source src={directVideoUrl} />
+                  </video>
+                ) : (
+                  <iframe
+                    src={driveFallbackUrl || activeVideoUrl}
+                    title={activeVideo?.title || project.title}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
                   />
                 )}
               </div>

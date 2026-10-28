@@ -5,7 +5,7 @@ import { Footer } from '../../components/public/Footer';
 import { ArrowLeft, Calendar, MapPin, User, Eye, Play, ArrowUpRight, X } from 'lucide-react';
 import { PortfolioProject } from '../../types';
 import { api } from '../../lib/api';
-import { getVideoEmbedUrl, normalizeMediaUrl } from '../../lib/mediaUtils';
+import { getVideoEmbedUrl, normalizeMediaUrl, getDirectVideoUrl, isGoogleDriveUrl } from '../../lib/mediaUtils';
 
 export const ProjectDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -145,7 +145,9 @@ export const ProjectDetailPage: React.FC = () => {
                     : [{ title: 'Video Utama', video_url: project.featured_video_url, orientation: project.orientation || 'portrait' }]
                   ).map((vid, idx) => {
                     const isPortrait = vid.orientation === 'portrait';
-                    const embedUrl = getVideoEmbedUrl(vid.video_url);
+                    const isDrive = isGoogleDriveUrl(vid.video_url);
+                    const directUrl = getDirectVideoUrl(vid.video_url);
+                    const embedUrl = !isDrive ? getVideoEmbedUrl(vid.video_url) : null;
                     return (
                       <div key={idx} className="space-y-3">
                         <div className="flex items-center gap-2">
@@ -172,12 +174,16 @@ export const ProjectDetailPage: React.FC = () => {
                             />
                           ) : (
                             <video
-                              src={vid.video_url}
+                              src={directUrl}
                               controls
                               playsInline
                               loop
-                              className="w-full h-full object-contain"
-                            />
+                              className={`w-full h-full ${isPortrait ? 'object-cover' : 'object-contain'}`}
+                              style={{ objectPosition: 'center center' }}
+                            >
+                              <source src={directUrl} type="video/mp4" />
+                              <source src={directUrl} />
+                            </video>
                           )}
                         </div>
                       </div>

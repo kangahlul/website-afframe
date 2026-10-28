@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
@@ -299,6 +300,62 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// GET /api/media/stream-drive?id=FILE_ID
+// Stream Google Drive video with Range requests & CORS headers for smooth native HTML5 video playback
+router.get('/stream-drive', (req, res) => {
+  const fileId = req.query.id;
+  if (!fileId || typeof fileId !== 'string') {
+    return res.status(400).json({ error: 'Parameter id berkas diperlukan.' });
+  }
+
+  const cleanId = fileId.replace(/[^a-zA-Z0-9_-]/g, '');
+  const targetUrl = `https://drive.usercontent.google.com/download?id=${cleanId}`;
+
+  const forwardHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  };
+
+  if (req.headers.range) {
+    forwardHeaders['Range'] = req.headers.range;
+  }
+
+  const driveReq = https.get(targetUrl, { headers: forwardHeaders }, (driveRes) => {
+    // If redirected
+    if (driveRes.statusCode >= 300 && driveRes.statusCode < 400 && driveRes.headers.location) {
+      return res.redirect(driveRes.headers.location);
+    }
+
+    res.statusCode = driveRes.statusCode || 200;
+
+    // Set clean video headers with CORS and Range support
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type, Accept');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+
+    if (driveRes.headers['content-range']) {
+      res.setHeader('Content-Range', driveRes.headers['content-range']);
+    }
+    if (driveRes.headers['content-length']) {
+      res.setHeader('Content-Length', driveRes.headers['content-length']);
+    }
+
+    driveRes.pipe(res);
+  });
+
+  driveReq.on('error', (err) => {
+    console.error('[Drive Stream Proxy Error]', err);
+    if (!res.headersSent) {
+      res.status(502).json({ error: 'Gagal melakukan streaming video Google Drive.' });
+    }
+  });
+
+  req.on('close', () => {
+    driveReq.destroy();
+  });
 });
 
 module.exports = router;
