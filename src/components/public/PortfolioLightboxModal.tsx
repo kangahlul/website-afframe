@@ -282,62 +282,60 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                  Scales purely by available height & width preserving 9:16!
                  ======================================================== */
               <div
-                className="relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 flex items-center justify-center aspect-[9/16] w-auto max-w-[85vw] sm:max-w-[380px] md:max-w-[400px] mx-auto"
+                className="relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 mx-auto select-none shrink-0 flex items-center justify-center"
                 style={{
-                  height: '100%',
-                  maxHeight: (isVideoMode && projectVideos.length > 1)
+                  height: (isVideoMode && projectVideos.length > 1)
                     ? 'min(calc(100dvh - 195px), 720px)'
                     : 'min(calc(100dvh - 155px), 750px)',
+                  width: (isVideoMode && projectVideos.length > 1)
+                    ? 'min(calc(min(calc(100dvh - 195px), 720px) * 9 / 16), calc(100vw - 32px), 400px)'
+                    : 'min(calc(min(calc(100dvh - 155px), 750px) * 9 / 16), calc(100vw - 32px), 400px)',
+                  aspectRatio: '9 / 16',
                 }}
               >
                 {/* Smartphone Speaker Accent */}
                 <div className="absolute top-2.5 left-1/2 transform -translate-x-1/2 w-14 sm:w-16 h-1 bg-zinc-700/60 rounded-full z-20 pointer-events-none" />
 
-                {embedUrl ? (
+                {isDriveVideo ? (
+                  /* Google Drive 16:9 player horizontal centering to eliminate pillarboxes & perfectly center the 9:16 video */
                   <iframe
-                    src={embedUrl}
+                    src={driveFallbackUrl || activeVideoUrl}
                     title={activeVideo?.title || project.title}
-                    className="w-full h-full object-cover"
+                    className="border-0 pointer-events-auto"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      height: '100%',
+                      width: 'calc(100% * 256 / 81)',
+                      maxWidth: 'none',
+                    }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
-                ) : !videoError ? (
+                ) : embedUrl ? (
+                  <iframe
+                    src={embedUrl}
+                    title={activeVideo?.title || project.title}
+                    className="w-full h-full object-cover border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                ) : (
                   <video
-                    key={directVideoUrl}
-                    src={directVideoUrl}
+                    key={activeVideoUrl}
+                    src={activeVideoUrl}
                     controls
                     autoPlay
                     playsInline
                     loop
-                    onError={() => setVideoError(true)}
                     className="w-full h-full object-cover"
                     style={{ objectPosition: 'center center' }}
                   >
-                    <source src={directVideoUrl} type="video/mp4" />
-                    <source src={directVideoUrl} />
+                    <source src={activeVideoUrl} type="video/mp4" />
+                    <source src={activeVideoUrl} />
                   </video>
-                ) : driveFallbackUrl ? (
-                  <iframe
-                    src={driveFallbackUrl}
-                    title={activeVideo?.title || project.title}
-                    className="w-full h-full object-contain"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center p-6 text-center text-zinc-400 text-xs">
-                    <p className="mb-2">Video tidak dapat dimuat langsung.</p>
-                    {activeVideoUrl && (
-                      <a
-                        href={activeVideoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1.5 rounded bg-[#C5A880] text-black font-semibold text-xs"
-                      >
-                        Buka Video di Tab Baru
-                      </a>
-                    )}
-                  </div>
                 )}
               </div>
             ) : (
@@ -352,50 +350,35 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     : 'calc(100dvh - 155px)',
                 }}
               >
-                {embedUrl ? (
+                {isDriveVideo ? (
                   <iframe
-                    src={embedUrl}
+                    src={driveFallbackUrl || activeVideoUrl}
                     title={activeVideo?.title || project.title}
-                    className="w-full h-full"
+                    className="w-full h-full border-0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
-                ) : !videoError ? (
-                  <video
-                    key={directVideoUrl}
-                    src={directVideoUrl}
-                    controls
-                    autoPlay
-                    playsInline
-                    onError={() => setVideoError(true)}
-                    className="w-full h-full object-contain"
-                    style={{ objectPosition: 'center center' }}
-                  >
-                    <source src={directVideoUrl} type="video/mp4" />
-                    <source src={directVideoUrl} />
-                  </video>
-                ) : driveFallbackUrl ? (
+                ) : embedUrl ? (
                   <iframe
-                    src={driveFallbackUrl}
+                    src={embedUrl}
                     title={activeVideo?.title || project.title}
-                    className="w-full h-full object-contain"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center p-6 text-center text-zinc-400 text-xs">
-                    <p className="mb-2">Video tidak dapat dimuat langsung.</p>
-                    {activeVideoUrl && (
-                      <a
-                        href={activeVideoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1.5 rounded bg-[#C5A880] text-black font-semibold text-xs"
-                      >
-                        Buka Video di Tab Baru
-                      </a>
-                    )}
-                  </div>
+                  <video
+                    key={activeVideoUrl}
+                    src={activeVideoUrl}
+                    controls
+                    autoPlay
+                    playsInline
+                    className="w-full h-full object-contain"
+                    style={{ objectPosition: 'center center' }}
+                  >
+                    <source src={activeVideoUrl} type="video/mp4" />
+                    <source src={activeVideoUrl} />
+                  </video>
                 )}
               </div>
             )

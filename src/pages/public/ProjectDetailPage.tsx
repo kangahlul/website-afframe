@@ -165,16 +165,36 @@ export const ProjectDetailPage: React.FC = () => {
                           </h4>
                         </div>
 
-                        <div className={`rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl flex items-center justify-center ${
+                        <div className={`rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl relative flex items-center justify-center ${
                           isPortrait
-                            ? 'w-full max-w-[320px] sm:max-w-[370px] aspect-[9/16] mx-auto border-2 border-[#C5A880]/40'
+                            ? 'w-full max-w-[340px] sm:max-w-[380px] aspect-[9/16] mx-auto border-2 border-[#C5A880]/40'
                             : 'w-full max-w-4xl mx-auto aspect-video'
                         }`}>
-                          {embedUrl ? (
+                          {isDrive ? (
+                            <iframe
+                              src={getGoogleDrivePreviewUrl(vid.video_url)!}
+                              title={vid.title || project.title}
+                              className="border-0 pointer-events-auto"
+                              style={isPortrait ? {
+                                position: 'absolute',
+                                top: 0,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                height: '100%',
+                                width: 'calc(100% * 256 / 81)',
+                                maxWidth: 'none',
+                              } : {
+                                width: '100%',
+                                height: '100%',
+                              }}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                            />
+                          ) : embedUrl ? (
                             <iframe
                               src={embedUrl}
                               title={vid.title || project.title}
-                              className={`w-full h-full ${isPortrait ? 'object-cover' : 'object-contain'}`}
+                              className={`w-full h-full ${isPortrait ? 'object-cover' : 'object-contain'} border-0`}
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                               allowFullScreen
                             />

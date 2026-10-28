@@ -255,8 +255,7 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                 const isDirectVideo = isVideo && project.featured_video_url && (
                   project.featured_video_url.endsWith('.mp4') ||
                   project.featured_video_url.endsWith('.webm') ||
-                  project.featured_video_url.includes('/uploads/') ||
-                  isGoogleDriveUrl(project.featured_video_url)
+                  project.featured_video_url.includes('/uploads/')
                 );
 
                 return (
