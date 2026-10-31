@@ -309,7 +309,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     autoPlay
                     playsInline
                     loop
-                    preload="metadata"
+                    preload="none"
                     onError={() => setVideoLoadFailed(true)}
                     className="w-full h-full object-contain"
                     style={{ objectPosition: 'center center' }}
@@ -352,7 +352,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     controls
                     autoPlay
                     playsInline
-                    preload="metadata"
+                    preload="none"
                     onError={() => setVideoLoadFailed(true)}
                     className="w-full h-full object-contain"
                     style={{ objectPosition: 'center center' }}

@@ -303,7 +303,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // GET /api/media/stream-drive?id=FILE_ID
-// Redirect to Google Drive direct download — browser streams natively without Vercel proxy overhead
+// Proxy Google Drive video dengan Range requests & CORS — clean HTML5 player tanpa UI Google Drive
 router.get('/stream-drive', (req, res) => {
   const fileId = req.query.id;
   if (!fileId || typeof fileId !== 'string') {
@@ -311,16 +311,50 @@ router.get('/stream-drive', (req, res) => {
   }
 
   const cleanId = fileId.replace(/[^a-zA-Z0-9_-]/g, '');
-  if (!cleanId) {
-    return res.status(400).json({ error: 'ID berkas tidak valid.' });
-  }
+  if (!cleanId) return res.status(400).json({ error: 'ID tidak valid.' });
 
-  // Redirect browser directly to Google Drive — no Vercel proxy bandwidth usage.
-  // Google Drive sets Access-Control-Allow-Origin: * and supports Range requests (HTTP 206).
-  const directUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0`;
-  res.setHeader('Cache-Control', 'public, max-age=3600');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  return res.redirect(302, directUrl);
+  const targetUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0`;
+
+  const forwardHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': '*/*',
+  };
+  if (req.headers.range) forwardHeaders['Range'] = req.headers.range;
+
+  const driveReq = https.get(targetUrl, { headers: forwardHeaders }, (driveRes) => {
+    // Follow redirect jika ada
+    if (driveRes.statusCode >= 300 && driveRes.statusCode < 400 && driveRes.headers.location) {
+      driveRes.resume();
+      const redirectReq = https.get(driveRes.headers.location, { headers: forwardHeaders }, (redirectRes) => {
+        sendVideoResponse(req, res, redirectRes);
+      });
+      redirectReq.on('error', () => { if (!res.headersSent) res.status(502).end(); });
+      return;
+    }
+    sendVideoResponse(req, res, driveRes);
+  });
+
+  driveReq.on('error', (err) => {
+    console.error('[Drive Stream Error]', err.message);
+    if (!res.headersSent) res.status(502).json({ error: 'Gagal streaming video.' });
+  });
+
+  req.on('close', () => driveReq.destroy());
 });
+
+function sendVideoResponse(req, res, driveRes) {
+  const status = driveRes.statusCode === 206 ? 206 : 200;
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'video/mp4');
+  res.setHeader('Accept-Ranges', 'bytes');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  if (driveRes.headers['content-range']) res.setHeader('Content-Range', driveRes.headers['content-range']);
+  if (driveRes.headers['content-length']) res.setHeader('Content-Length', driveRes.headers['content-length']);
+  driveRes.pipe(res);
+  req.on('close', () => driveRes.destroy());
+}
 
 module.exports = router;
