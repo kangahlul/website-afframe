@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '../../components/public/Navbar';
 import { Footer } from '../../components/public/Footer';
@@ -6,7 +6,11 @@ import { Search, Eye, Play, ArrowUpRight, X, Film, Image as ImageIcon } from 'lu
 import { PortfolioProject, PortfolioCategory } from '../../types';
 import { api } from '../../lib/api';
 import { normalizeMediaUrl } from '../../lib/mediaUtils';
-import { PortfolioLightboxModal } from '../../components/public/PortfolioLightboxModal';
+
+// Lazy load lightbox — hanya didownload saat user klik karya (bukan saat halaman load)
+const PortfolioLightboxModal = lazy(() =>
+  import('../../components/public/PortfolioLightboxModal').then(m => ({ default: m.PortfolioLightboxModal }))
+);
 
 export const PortfolioPage: React.FC = () => {
   const [projects, setProjects] = useState<PortfolioProject[]>([]);
@@ -282,15 +286,17 @@ export const PortfolioPage: React.FC = () => {
         </div>
       </main>
 
-      {/* Lightbox / In-Place Modal Pop-up with Sliding Support */}
+      {/* Lightbox — lazy loaded, hanya muncul saat diklik */}
       {activeModalIndex !== null && (
-        <PortfolioLightboxModal
-          projects={filteredProjects}
-          currentIndex={activeModalIndex}
-          isOpen={activeModalIndex !== null}
-          onClose={() => setActiveModalIndex(null)}
-          onNavigate={(newIdx) => setActiveModalIndex(newIdx)}
-        />
+        <Suspense fallback={null}>
+          <PortfolioLightboxModal
+            projects={filteredProjects}
+            currentIndex={activeModalIndex}
+            isOpen={activeModalIndex !== null}
+            onClose={() => setActiveModalIndex(null)}
+            onNavigate={(newIdx) => setActiveModalIndex(newIdx)}
+          />
+        </Suspense>
       )}
 
       <Footer />
