@@ -29,6 +29,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const [selectedVideoIndex, setSelectedVideoIndex] = useState<number>(0);
   const [activeMediaMode, setActiveMediaMode] = useState<'video' | 'photo'>('video');
   const [videoLoadFailed, setVideoLoadFailed] = useState(false);
+  const [videoStarted, setVideoStarted] = useState(false); // click-to-play: video hanya load saat diklik
   const touchStartX = useRef<number | null>(null);
 
   const total = projects.length;
@@ -39,6 +40,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
     setSelectedPhotoIndex(0);
     setSelectedVideoIndex(0);
     setVideoLoadFailed(false);
+    setVideoStarted(false); // reset play state tiap ganti project
     if (!project) return;
     if (project.media_type === 'photo') {
       setActiveMediaMode('photo');
@@ -140,6 +142,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
 
   useEffect(() => {
     setVideoLoadFailed(false);
+    setVideoStarted(false); // reset saat ganti video tab
   }, [selectedVideoIndex, activeVideoUrl]);
 
   const currentPhotoUrl = allImages[selectedPhotoIndex] || project.cover_image_url;
@@ -302,21 +305,49 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     allowFullScreen
                   />
                 ) : !videoLoadFailed ? (
-                  <video
-                    key={directVideoUrl}
-                    src={directVideoUrl}
-                    controls
-                    autoPlay
-                    playsInline
-                    loop
-                    preload="none"
-                    onError={() => setVideoLoadFailed(true)}
-                    className="w-full h-full object-contain"
-                    style={{ objectPosition: 'center center' }}
-                  >
-                    <source src={directVideoUrl} type="video/mp4" />
-                    <source src={directVideoUrl} />
-                  </video>
+                  videoStarted ? (
+                    /* Video player — hanya muncul setelah user klik play */
+                    <video
+                      key={directVideoUrl}
+                      src={directVideoUrl}
+                      controls
+                      autoPlay
+                      playsInline
+                      loop
+                      preload="none"
+                      onError={() => setVideoLoadFailed(true)}
+                      className="w-full h-full object-contain"
+                      style={{ objectPosition: 'center center' }}
+                    >
+                      <source src={directVideoUrl} type="video/mp4" />
+                      <source src={directVideoUrl} />
+                    </video>
+                  ) : (
+                    /* Click-to-play overlay — 0 byte video didownload */
+                    <button
+                      type="button"
+                      onClick={() => setVideoStarted(true)}
+                      className="w-full h-full relative flex items-center justify-center cursor-pointer group"
+                      aria-label="Putar video"
+                    >
+                      {/* Cover image sebagai poster */}
+                      <img
+                        src={normalizeMediaUrl(project.cover_image_url)}
+                        alt={project.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {/* Gradient overlay */}
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
+                      {/* Play button */}
+                      <div className="relative z-10 flex flex-col items-center gap-3">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 border-2 border-[#C5A880] flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:border-[#E2D2BC] transition-all duration-200">
+                          <Play className="w-7 h-7 sm:w-9 sm:h-9 text-[#C5A880] fill-[#C5A880] ml-1" />
+                        </div>
+                        <span className="text-[11px] text-[#C5A880]/80 font-medium tracking-widest uppercase">Putar Video</span>
+                      </div>
+                    </button>
+                  )
                 ) : (
                   <iframe
                     src={driveFallbackUrl || activeVideoUrl}
@@ -346,20 +377,45 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     allowFullScreen
                   />
                 ) : !videoLoadFailed ? (
-                  <video
-                    key={directVideoUrl}
-                    src={directVideoUrl}
-                    controls
-                    autoPlay
-                    playsInline
-                    preload="none"
-                    onError={() => setVideoLoadFailed(true)}
-                    className="w-full h-full object-contain"
-                    style={{ objectPosition: 'center center' }}
-                  >
-                    <source src={directVideoUrl} type="video/mp4" />
-                    <source src={directVideoUrl} />
-                  </video>
+                  videoStarted ? (
+                    /* Video player landscape */
+                    <video
+                      key={directVideoUrl}
+                      src={directVideoUrl}
+                      controls
+                      autoPlay
+                      playsInline
+                      preload="none"
+                      onError={() => setVideoLoadFailed(true)}
+                      className="w-full h-full object-contain"
+                      style={{ objectPosition: 'center center' }}
+                    >
+                      <source src={directVideoUrl} type="video/mp4" />
+                      <source src={directVideoUrl} />
+                    </video>
+                  ) : (
+                    /* Click-to-play overlay landscape */
+                    <button
+                      type="button"
+                      onClick={() => setVideoStarted(true)}
+                      className="w-full h-full relative flex items-center justify-center cursor-pointer group"
+                      aria-label="Putar video"
+                    >
+                      <img
+                        src={normalizeMediaUrl(project.cover_image_url)}
+                        alt={project.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
+                      <div className="relative z-10 flex flex-col items-center gap-3">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 border-2 border-[#C5A880] flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:border-[#E2D2BC] transition-all duration-200">
+                          <Play className="w-7 h-7 sm:w-9 sm:h-9 text-[#C5A880] fill-[#C5A880] ml-1" />
+                        </div>
+                        <span className="text-[11px] text-[#C5A880]/80 font-medium tracking-widest uppercase">Putar Video</span>
+                      </div>
+                    </button>
+                  )
                 ) : (
                   <iframe
                     src={driveFallbackUrl || activeVideoUrl}

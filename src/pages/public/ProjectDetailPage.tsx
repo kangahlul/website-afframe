@@ -7,6 +7,82 @@ import { PortfolioProject } from '../../types';
 import { api } from '../../lib/api';
 import { getVideoEmbedUrl, normalizeMediaUrl, getDirectVideoUrl, isGoogleDriveUrl } from '../../lib/mediaUtils';
 
+// ─── Click-to-play VideoItem (0 byte video hingga user klik) ─────────────────
+interface VideoItemProps {
+  vid: { title?: string; video_url: string; orientation?: string };
+  idx: number;
+  isPortrait: boolean;
+  directUrl: string;
+  embedUrl: string | null;
+  projectTitle: string;
+  coverImageUrl: string;
+}
+
+const VideoItem: React.FC<VideoItemProps> = ({ vid, idx, isPortrait, directUrl, embedUrl, projectTitle, coverImageUrl }) => {
+  const [started, setStarted] = useState(false);
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30">
+          {isPortrait ? 'Reels 9:16' : 'Sinematik 16:9'}
+        </span>
+        <h4 className="font-medium text-white text-sm">{vid.title || `Video ${idx + 1}`}</h4>
+      </div>
+
+      <div className={`rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl flex items-center justify-center ${
+        isPortrait
+          ? 'w-full max-w-[340px] sm:max-w-[380px] aspect-[9/16] mx-auto border-2 border-[#C5A880]/40'
+          : 'w-full max-w-4xl mx-auto aspect-video'
+      }`}>
+        {embedUrl ? (
+          <iframe
+            src={embedUrl}
+            title={vid.title || projectTitle}
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        ) : started ? (
+          <video
+            src={directUrl}
+            controls
+            autoPlay
+            playsInline
+            loop
+            preload="none"
+            className="w-full h-full object-contain"
+            style={{ objectPosition: 'center center' }}
+          >
+            <source src={directUrl} type="video/mp4" />
+            <source src={directUrl} />
+          </video>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setStarted(true)}
+            className="w-full h-full relative flex items-center justify-center cursor-pointer group"
+            aria-label="Putar video"
+          >
+            <img
+              src={normalizeMediaUrl(coverImageUrl)}
+              alt={projectTitle}
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
+            <div className="relative z-10 flex flex-col items-center gap-3">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 border-2 border-[#C5A880] flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:border-[#E2D2BC] transition-all duration-200">
+                <Play className="w-7 h-7 sm:w-9 sm:h-9 text-[#C5A880] fill-[#C5A880] ml-1" />
+              </div>
+              <span className="text-[11px] text-[#C5A880]/80 font-medium tracking-widest uppercase">Putar Video</span>
+            </div>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const ProjectDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const [project, setProject] = useState<PortfolioProject | null>(null);
