@@ -335,6 +335,7 @@ router.get('/stream-drive', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type, Accept');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
 
     if (driveRes.headers['content-range']) {
       res.setHeader('Content-Range', driveRes.headers['content-range']);

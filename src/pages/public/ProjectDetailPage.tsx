@@ -178,7 +178,8 @@ export const ProjectDetailPage: React.FC = () => {
                               controls
                               playsInline
                               loop
-                              className={`w-full h-full ${isPortrait ? 'object-cover' : 'object-contain'}`}
+                              preload="auto"
+                              className="w-full h-full object-contain"
                               style={{ objectPosition: 'center center' }}
                             >
                               <source src={directUrl} type="video/mp4" />
