@@ -2,27 +2,36 @@
  * Utility functions for normalizing media links (Google Drive, YouTube, Vimeo, direct media)
  */
 
-export function normalizeMediaUrl(url: string | null | undefined): string {
+/** Ukuran gambar Google Drive yang tersedia */
+type DriveImageSize = 'thumb' | 'card' | 'full';
+const DRIVE_SIZE: Record<DriveImageSize, string> = {
+  thumb: 'w400',   // thumbnail kecil (grid portfolio, dll)
+  card:  'w800',   // card sedang
+  full:  'w1920',  // fullscreen / lightbox
+};
+
+function getDriveId(url: string): string | null {
+  const fileD = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileD) return fileD[1];
+  const idParam = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idParam) return idParam[1];
+  return null;
+}
+
+/** Normalise Google Drive URL ke thumbnail dengan ukuran tertentu */
+export function normalizeMediaUrl(url: string | null | undefined, size: DriveImageSize = 'card'): string {
   if (!url) return '';
   const trimmed = url.trim();
-
-  // Convert Google Drive share links to direct image thumbnail/view URLs
-  if (trimmed.includes('drive.google.com/file/d/')) {
-    const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1920`;
-    }
-  }
-
-  if (trimmed.includes('drive.google.com/open?id=')) {
-    const match = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1920`;
-    }
-  }
-
+  const id = getDriveId(trimmed);
+  if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=${DRIVE_SIZE[size]}`;
   return trimmed;
 }
+
+/** Alias untuk thumbnail kecil (grid / card) */
+export const normalizeThumb = (url: string | null | undefined) => normalizeMediaUrl(url, 'thumb');
+
+/** Alias untuk fullscreen / lightbox */
+export const normalizeFull  = (url: string | null | undefined) => normalizeMediaUrl(url, 'full');
 
 /**
  * Extract Google Drive file ID from various link formats:

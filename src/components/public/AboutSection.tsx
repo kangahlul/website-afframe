@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowUpRight, CheckCircle, ShieldCheck } from 'lucide-react';
 import { WebsiteSection } from '../../types';
-import { normalizeMediaUrl } from '../../lib/mediaUtils';
+import { normalizeMediaUrl, normalizeFull } from '../../lib/mediaUtils';
 
 interface AboutSectionProps {
   section?: WebsiteSection;
@@ -19,7 +19,7 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ section }) => {
   const rawBgUrl =
     section?.background_media_url ||
     'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200&auto=format&fit=crop';
-  const bgUrl = normalizeMediaUrl(rawBgUrl);
+  const bgUrl = normalizeFull(rawBgUrl);
 
   return (
     <section id="about" className="pt-14 pb-20 bg-[#09090A] relative border-t border-[#24242A]/60 overflow-hidden scroll-mt-14">

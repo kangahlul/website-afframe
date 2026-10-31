@@ -5,6 +5,8 @@ import { PortfolioProject, PortfolioVideo } from '../../types';
 import {
   getVideoEmbedUrl,
   normalizeMediaUrl,
+  normalizeFull,
+  normalizeThumb,
   getDirectVideoUrl,
   isGoogleDriveUrl,
   getGoogleDrivePreviewUrl,
@@ -305,49 +307,21 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     allowFullScreen
                   />
                 ) : !videoLoadFailed ? (
-                  videoStarted ? (
-                    /* Video player — hanya muncul setelah user klik play */
-                    <video
-                      key={directVideoUrl}
-                      src={directVideoUrl}
-                      controls
-                      autoPlay
-                      playsInline
-                      loop
-                      preload="none"
-                      onError={() => setVideoLoadFailed(true)}
-                      className="w-full h-full object-contain"
-                      style={{ objectPosition: 'center center' }}
-                    >
-                      <source src={directVideoUrl} type="video/mp4" />
-                      <source src={directVideoUrl} />
-                    </video>
-                  ) : (
-                    /* Click-to-play overlay — 0 byte video didownload */
-                    <button
-                      type="button"
-                      onClick={() => setVideoStarted(true)}
-                      className="w-full h-full relative flex items-center justify-center cursor-pointer group"
-                      aria-label="Putar video"
-                    >
-                      {/* Cover image sebagai poster */}
-                      <img
-                        src={normalizeMediaUrl(project.cover_image_url)}
-                        alt={project.title}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      {/* Gradient overlay */}
-                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
-                      {/* Play button */}
-                      <div className="relative z-10 flex flex-col items-center gap-3">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 border-2 border-[#C5A880] flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:border-[#E2D2BC] transition-all duration-200">
-                          <Play className="w-7 h-7 sm:w-9 sm:h-9 text-[#C5A880] fill-[#C5A880] ml-1" />
-                        </div>
-                        <span className="text-[11px] text-[#C5A880]/80 font-medium tracking-widest uppercase">Putar Video</span>
-                      </div>
-                    </button>
-                  )
+                  <video
+                    key={directVideoUrl}
+                    src={directVideoUrl}
+                    controls
+                    autoPlay
+                    playsInline
+                    loop
+                    preload="none"
+                    onError={() => setVideoLoadFailed(true)}
+                    className="w-full h-full object-contain"
+                    style={{ objectPosition: 'center center' }}
+                  >
+                    <source src={directVideoUrl} type="video/mp4" />
+                    <source src={directVideoUrl} />
+                  </video>
                 ) : (
                   <iframe
                     src={driveFallbackUrl || activeVideoUrl}
@@ -364,9 +338,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                  ======================================================== */
               <div
                 className="relative w-full max-w-4xl lg:max-w-5xl aspect-video bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-2xl flex items-center justify-center mx-auto"
-                style={{
-                  maxHeight: '100%',
-                }}
+                style={{ maxHeight: '100%' }}
               >
                 {embedUrl ? (
                   <iframe
@@ -377,45 +349,20 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     allowFullScreen
                   />
                 ) : !videoLoadFailed ? (
-                  videoStarted ? (
-                    /* Video player landscape */
-                    <video
-                      key={directVideoUrl}
-                      src={directVideoUrl}
-                      controls
-                      autoPlay
-                      playsInline
-                      preload="none"
-                      onError={() => setVideoLoadFailed(true)}
-                      className="w-full h-full object-contain"
-                      style={{ objectPosition: 'center center' }}
-                    >
-                      <source src={directVideoUrl} type="video/mp4" />
-                      <source src={directVideoUrl} />
-                    </video>
-                  ) : (
-                    /* Click-to-play overlay landscape */
-                    <button
-                      type="button"
-                      onClick={() => setVideoStarted(true)}
-                      className="w-full h-full relative flex items-center justify-center cursor-pointer group"
-                      aria-label="Putar video"
-                    >
-                      <img
-                        src={normalizeMediaUrl(project.cover_image_url)}
-                        alt={project.title}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
-                      <div className="relative z-10 flex flex-col items-center gap-3">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 border-2 border-[#C5A880] flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:border-[#E2D2BC] transition-all duration-200">
-                          <Play className="w-7 h-7 sm:w-9 sm:h-9 text-[#C5A880] fill-[#C5A880] ml-1" />
-                        </div>
-                        <span className="text-[11px] text-[#C5A880]/80 font-medium tracking-widest uppercase">Putar Video</span>
-                      </div>
-                    </button>
-                  )
+                  <video
+                    key={directVideoUrl}
+                    src={directVideoUrl}
+                    controls
+                    autoPlay
+                    playsInline
+                    preload="none"
+                    onError={() => setVideoLoadFailed(true)}
+                    className="w-full h-full object-contain"
+                    style={{ objectPosition: 'center center' }}
+                  >
+                    <source src={directVideoUrl} type="video/mp4" />
+                    <source src={directVideoUrl} />
+                  </video>
                 ) : (
                   <iframe
                     src={driveFallbackUrl || activeVideoUrl}
@@ -437,7 +384,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                 style={{ height: allImages.length > 1 ? 'calc(100dvh - 210px)' : 'calc(100dvh - 160px)' }}
               >
                 <img
-                  src={normalizeMediaUrl(currentPhotoUrl)}
+                  src={normalizeFull(currentPhotoUrl)}
                   alt={project.title}
                   className="max-h-full max-w-full object-contain rounded-lg border border-zinc-800 shadow-2xl"
                 />
@@ -456,7 +403,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                           : 'border-zinc-800 opacity-60 hover:opacity-100'
                       }`}
                     >
-                      <img src={normalizeMediaUrl(imgUrl)} alt="" className="w-full h-full object-cover" />
+                      <img src={normalizeThumb(imgUrl)} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>

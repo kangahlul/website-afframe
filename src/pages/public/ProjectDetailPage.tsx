@@ -5,7 +5,7 @@ import { Footer } from '../../components/public/Footer';
 import { ArrowLeft, Calendar, MapPin, User, Eye, Play, ArrowUpRight, X } from 'lucide-react';
 import { PortfolioProject } from '../../types';
 import { api } from '../../lib/api';
-import { getVideoEmbedUrl, normalizeMediaUrl, getDirectVideoUrl, isGoogleDriveUrl } from '../../lib/mediaUtils';
+import { getVideoEmbedUrl, normalizeMediaUrl, normalizeThumb, normalizeFull, getDirectVideoUrl, isGoogleDriveUrl } from '../../lib/mediaUtils';
 
 // ─── Click-to-play VideoItem (0 byte video hingga user klik) ─────────────────
 interface VideoItemProps {
@@ -64,7 +64,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ vid, idx, isPortrait, directUrl, 
             aria-label="Putar video"
           >
             <img
-              src={normalizeMediaUrl(coverImageUrl)}
+              src={normalizeThumb(coverImageUrl)}
               alt={projectTitle}
               className="absolute inset-0 w-full h-full object-cover"
               loading="lazy"
@@ -185,10 +185,10 @@ export const ProjectDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Cover Image */}
+            {/* Cover Image — full size karena besar di halaman */}
             <div className="aspect-[16/10] sm:aspect-[16/9] w-full rounded-sm overflow-hidden bg-black mb-12 border border-[#24242A] shadow-2xl">
               <img
-                src={normalizeMediaUrl(project.cover_image_url)}
+                src={normalizeMediaUrl(project.cover_image_url, 'full')}
                 alt={project.title}
                 className="w-full h-full object-cover cursor-pointer hover:scale-102 transition-transform duration-500"
                 onClick={() => setLightboxImage(project.cover_image_url)}
@@ -284,7 +284,7 @@ export const ProjectDetailPage: React.FC = () => {
                       onClick={() => setLightboxImage(img.image_url)}
                     >
                       <img
-                        src={normalizeMediaUrl(img.image_url)}
+                        src={normalizeThumb(img.image_url)}
                         alt={img.alt_text || project.title}
                         loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -330,7 +330,7 @@ export const ProjectDetailPage: React.FC = () => {
                     >
                       <div className="aspect-[4/3] overflow-hidden bg-black">
                         <img
-                          src={normalizeMediaUrl(rel.cover_image_url)}
+                          src={normalizeThumb(rel.cover_image_url)}
                           alt={rel.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
@@ -366,7 +366,7 @@ export const ProjectDetailPage: React.FC = () => {
             <X className="w-7 h-7" />
           </button>
           <img
-            src={normalizeMediaUrl(lightboxImage)}
+            src={normalizeFull(lightboxImage)}
             alt="Preview"
             className="max-w-full max-h-[90vh] object-contain rounded-sm"
             onClick={e => e.stopPropagation()}

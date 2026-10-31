@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowDown, ArrowUpRight, Play, Sparkles } from 'lucide-react';
 import { WebsiteSection } from '../../types';
-import { normalizeMediaUrl, getVideoEmbedUrl, getDirectVideoUrl } from '../../lib/mediaUtils';
+import { normalizeMediaUrl, normalizeFull, getVideoEmbedUrl, getDirectVideoUrl } from '../../lib/mediaUtils';
 
 interface HeroSectionProps {
   section?: WebsiteSection;
@@ -62,7 +62,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ section }) => {
           )
         ) : (
           <img
-            src={normalizeMediaUrl(bgUrl)}
+            src={normalizeFull(bgUrl)}
             alt="AFFRAME Background"
             className="w-full h-full object-cover transform scale-105 motion-safe:animate-pulse-slow"
             style={{ objectPosition: section?.focal_point || 'center' }}

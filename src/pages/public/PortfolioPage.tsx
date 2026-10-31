@@ -5,7 +5,7 @@ import { Footer } from '../../components/public/Footer';
 import { Search, Eye, Play, ArrowUpRight, X, Film, Image as ImageIcon } from 'lucide-react';
 import { PortfolioProject, PortfolioCategory } from '../../types';
 import { api } from '../../lib/api';
-import { normalizeMediaUrl } from '../../lib/mediaUtils';
+import { normalizeMediaUrl, normalizeThumb } from '../../lib/mediaUtils';
 
 // Lazy load lightbox — hanya didownload saat user klik karya (bukan saat halaman load)
 const PortfolioLightboxModal = lazy(() =>
@@ -208,7 +208,7 @@ export const PortfolioPage: React.FC = () => {
                       isPortrait ? 'aspect-[9/16]' : 'aspect-[4/5]'
                     }`}>
                       <img
-                        src={normalizeMediaUrl(project.cover_image_url)}
+                        src={normalizeThumb(project.cover_image_url)}
                         alt={project.title}
                         loading="lazy"
                         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"

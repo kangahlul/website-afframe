@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight, Play, Eye, ChevronLeft, ChevronRight, Film, Image as ImageIcon, SlidersHorizontal, LayoutGrid } from 'lucide-react';
 import { PortfolioProject, PortfolioCategory, WebsiteSection } from '../../types';
 import { api } from '../../lib/api';
-import { normalizeMediaUrl, getDirectVideoUrl, isGoogleDriveUrl } from '../../lib/mediaUtils';
+import { normalizeMediaUrl, normalizeThumb, getDirectVideoUrl, isGoogleDriveUrl } from '../../lib/mediaUtils';
 import { PortfolioLightboxModal } from './PortfolioLightboxModal';
 
 interface SelectedWorksSectionProps {
@@ -286,7 +286,7 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                         />
                       ) : (
                         <img
-                          src={normalizeMediaUrl(project.cover_image_url)}
+                          src={normalizeThumb(project.cover_image_url)}
                           alt={project.title}
                           loading="lazy"
                           className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
@@ -384,7 +384,7 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                     isPortrait ? 'aspect-[9/16]' : 'aspect-[4/5]'
                   }`}>
                     <img
-                      src={normalizeMediaUrl(project.cover_image_url)}
+                      src={normalizeThumb(project.cover_image_url)}
                       alt={project.title}
                       loading="lazy"
                       className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
