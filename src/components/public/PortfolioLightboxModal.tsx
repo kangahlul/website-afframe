@@ -278,14 +278,16 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
             isPortrait ? (
               /* ========================================================
                  PORTRAIT 9:16 REELS CONTAINER (Mobile & Desktop Fit)
-                 Tinggi Adaptif Otomatis (100dvh) & Video Tampak Penuh
+                 height: 100% agar otomatis mengisi sisa flex-grow
+                 tanpa hardcode calc() yang bisa terpotong di berbagai device
                  ======================================================== */
               <div
-                className="relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 flex items-center justify-center max-w-[90vw] mx-auto select-none"
+                className="relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 flex items-center justify-center mx-auto select-none"
                 style={{
-                  height: (isVideoMode && projectVideos.length > 1) ? 'calc(100dvh - 215px)' : 'calc(100dvh - 175px)',
-                  maxHeight: 'min(calc(100dvh - 175px), 680px)',
-                  aspectRatio: '9/16',
+                  height: '100%',
+                  maxHeight: '680px',
+                  aspectRatio: '9 / 16',
+                  maxWidth: 'min(90vw, calc(680px * 9 / 16))',
                 }}
               >
                 {/* Smartphone Speaker Accent */}
@@ -307,7 +309,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     autoPlay
                     playsInline
                     loop
-                    preload="auto"
+                    preload="metadata"
                     onError={() => setVideoLoadFailed(true)}
                     className="w-full h-full object-contain"
                     style={{ objectPosition: 'center center' }}
@@ -332,9 +334,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
               <div
                 className="relative w-full max-w-4xl lg:max-w-5xl aspect-video bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-2xl flex items-center justify-center mx-auto"
                 style={{
-                  maxHeight: (isVideoMode && projectVideos.length > 1)
-                    ? 'calc(100dvh - 200px)'
-                    : 'calc(100dvh - 160px)',
+                  maxHeight: '100%',
                 }}
               >
                 {embedUrl ? (
@@ -352,7 +352,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     controls
                     autoPlay
                     playsInline
-                    preload="auto"
+                    preload="metadata"
                     onError={() => setVideoLoadFailed(true)}
                     className="w-full h-full object-contain"
                     style={{ objectPosition: 'center center' }}

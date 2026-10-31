@@ -178,7 +178,7 @@ export const ProjectDetailPage: React.FC = () => {
                               controls
                               playsInline
                               loop
-                              preload="auto"
+                              preload="metadata"
                               className="w-full h-full object-contain"
                               style={{ objectPosition: 'center center' }}
                             >

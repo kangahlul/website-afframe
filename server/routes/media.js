@@ -303,7 +303,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // GET /api/media/stream-drive?id=FILE_ID
-// Stream Google Drive video with Range requests & CORS headers for smooth native HTML5 video playback
+// Redirect to Google Drive direct download — browser streams natively without Vercel proxy overhead
 router.get('/stream-drive', (req, res) => {
   const fileId = req.query.id;
   if (!fileId || typeof fileId !== 'string') {
@@ -311,52 +311,16 @@ router.get('/stream-drive', (req, res) => {
   }
 
   const cleanId = fileId.replace(/[^a-zA-Z0-9_-]/g, '');
-  const targetUrl = `https://drive.usercontent.google.com/download?id=${cleanId}`;
-
-  const forwardHeaders = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  };
-
-  if (req.headers.range) {
-    forwardHeaders['Range'] = req.headers.range;
+  if (!cleanId) {
+    return res.status(400).json({ error: 'ID berkas tidak valid.' });
   }
 
-  const driveReq = https.get(targetUrl, { headers: forwardHeaders }, (driveRes) => {
-    // If redirected
-    if (driveRes.statusCode >= 300 && driveRes.statusCode < 400 && driveRes.headers.location) {
-      return res.redirect(driveRes.headers.location);
-    }
-
-    res.statusCode = driveRes.statusCode || 200;
-
-    // Set clean video headers with CORS and Range support
-    res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Accept-Ranges', 'bytes');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type, Accept');
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
-
-    if (driveRes.headers['content-range']) {
-      res.setHeader('Content-Range', driveRes.headers['content-range']);
-    }
-    if (driveRes.headers['content-length']) {
-      res.setHeader('Content-Length', driveRes.headers['content-length']);
-    }
-
-    driveRes.pipe(res);
-  });
-
-  driveReq.on('error', (err) => {
-    console.error('[Drive Stream Proxy Error]', err);
-    if (!res.headersSent) {
-      res.status(502).json({ error: 'Gagal melakukan streaming video Google Drive.' });
-    }
-  });
-
-  req.on('close', () => {
-    driveReq.destroy();
-  });
+  // Redirect browser directly to Google Drive — no Vercel proxy bandwidth usage.
+  // Google Drive sets Access-Control-Allow-Origin: * and supports Range requests (HTTP 206).
+  const directUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0`;
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  return res.redirect(302, directUrl);
 });
 
 module.exports = router;
