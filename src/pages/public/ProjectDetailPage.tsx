@@ -49,7 +49,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ vid, idx, isPortrait, directUrl, 
             autoPlay
             playsInline
             loop
-            preload="none"
+            preload="auto"
             className="w-full h-full object-contain"
             style={{ objectPosition: 'center center' }}
           >

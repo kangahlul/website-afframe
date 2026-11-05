@@ -46,8 +46,13 @@ export function getGoogleDriveFileId(url: string | null | undefined): string | n
   const fileDMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (fileDMatch && fileDMatch[1]) return fileDMatch[1];
 
+  const dMatch = trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (dMatch && dMatch[1]) return dMatch[1];
+
   const idParamMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (idParamMatch && idParamMatch[1]) return idParamMatch[1];
+
+  if (/^[a-zA-Z0-9_-]{28,45}$/.test(trimmed)) return trimmed;
 
   return null;
 }

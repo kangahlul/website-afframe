@@ -28,7 +28,7 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
   const loadData = React.useCallback(async () => {
     try {
       const [projRes, catRes] = await Promise.all([
-        api.get<{ projects: PortfolioProject[] }>('/portfolio/projects', { limit: 50, all: false }),
+        api.get<{ projects: PortfolioProject[] }>('/portfolio/projects', { limit: 200, all: false }),
         api.get<{ categories: PortfolioCategory[] }>('/portfolio/categories'),
       ]);
       setProjects(projRes.projects || []);
@@ -381,7 +381,9 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                   className="group relative flex flex-col bg-[#131316] border border-[#24242A] hover:border-[#C5A880]/60 rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 shadow-lg"
                 >
                   <div className={`relative overflow-hidden bg-black ${
-                    isPortrait ? 'aspect-[9/16]' : 'aspect-[4/5]'
+                    isVideo
+                      ? isPortrait ? 'aspect-[9/16]' : 'aspect-video'
+                      : 'aspect-[4/5]'
                   }`}>
                     <img
                       src={normalizeThumb(project.cover_image_url)}

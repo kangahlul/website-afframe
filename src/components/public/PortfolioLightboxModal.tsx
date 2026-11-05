@@ -9,7 +9,6 @@ import {
   normalizeThumb,
   getDirectVideoUrl,
   isGoogleDriveUrl,
-  getGoogleDrivePreviewUrl,
 } from '../../lib/mediaUtils';
 
 interface PortfolioLightboxModalProps {
@@ -140,7 +139,6 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const isDriveVideo = isGoogleDriveUrl(activeVideoUrl);
   const directVideoUrl = getDirectVideoUrl(activeVideoUrl);
   const embedUrl = !isDriveVideo ? getVideoEmbedUrl(activeVideoUrl) : null;
-  const driveFallbackUrl = isDriveVideo ? getGoogleDrivePreviewUrl(activeVideoUrl) : null;
 
   useEffect(() => {
     setVideoLoadFailed(false);
@@ -283,21 +281,17 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
             isPortrait ? (
               /* ========================================================
                  PORTRAIT 9:16 REELS CONTAINER (Mobile & Desktop Fit)
-                 height: 100% agar otomatis mengisi sisa flex-grow
-                 tanpa hardcode calc() yang bisa terpotong di berbagai device
+                 Bounded vertically & horizontally — always perfectly fitted & centered
                  ======================================================== */
               <div
                 className="relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#C5A880]/50 shadow-2xl shadow-[#C5A880]/10 flex items-center justify-center mx-auto select-none"
                 style={{
                   height: '100%',
-                  maxHeight: '680px',
+                  maxHeight: 'min(calc(100dvh - 170px), 680px)',
                   aspectRatio: '9 / 16',
-                  maxWidth: 'min(90vw, calc(680px * 9 / 16))',
+                  maxWidth: 'min(92vw, calc(min(calc(100dvh - 170px), 680px) * 9 / 16))',
                 }}
               >
-                {/* Smartphone Speaker Accent */}
-                <div className="absolute top-2.5 left-1/2 transform -translate-x-1/2 w-14 sm:w-16 h-1 bg-zinc-700/60 rounded-full z-20 pointer-events-none" />
-
                 {embedUrl ? (
                   <iframe
                     src={embedUrl}
@@ -315,7 +309,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                       autoPlay
                       playsInline
                       loop
-                      preload="none"
+                      preload="auto"
                       onError={() => setVideoLoadFailed(true)}
                       className="w-full h-full object-contain"
                       style={{ objectPosition: 'center center' }}
@@ -324,19 +318,22 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                       <source src={directVideoUrl} />
                     </video>
                   ) : (
-                    <iframe
-                      src={driveFallbackUrl || activeVideoUrl}
-                      title={activeVideo?.title || project.title}
-                      className="w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                    />
+                    <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 z-10">
+                      <p className="text-zinc-400 text-xs sm:text-sm">Gagal memuat video secara langsung.</p>
+                      <button
+                        type="button"
+                        onClick={() => { setVideoLoadFailed(false); setVideoStarted(true); }}
+                        className="px-4 py-2 bg-[#C5A880] text-black font-semibold text-xs rounded uppercase tracking-wider cursor-pointer hover:bg-[#E2D2BC] transition-colors"
+                      >
+                        Coba Putar Ulang
+                      </button>
+                    </div>
                   )
                 ) : (
                   /* Click-to-Play Overlay — Portrait */
                   <button
                     type="button"
-                    onClick={() => setVideoStarted(true)}
+                    onClick={() => { setVideoStarted(true); setVideoLoadFailed(false); }}
                     className="w-full h-full relative flex items-center justify-center cursor-pointer group/play"
                     aria-label="Putar video"
                   >
@@ -345,7 +342,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                       alt={project.title}
                       className="absolute inset-0 w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-black/50 group-hover/play:bg-black/40 transition-colors" />
+                    <div className="absolute inset-0 bg-black/45 group-hover/play:bg-black/35 transition-colors" />
                     <div className="relative z-10 flex flex-col items-center gap-3">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 border-2 border-[#C5A880] flex items-center justify-center shadow-2xl group-hover/play:scale-110 group-hover/play:border-[#E2D2BC] transition-all duration-200">
                         <Play className="w-7 h-7 sm:w-9 sm:h-9 text-[#C5A880] fill-[#C5A880] ml-1" />
@@ -358,10 +355,16 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
             ) : (
               /* ========================================================
                  LANDSCAPE 16:9 CINEMATIC CONTAINER
+                 Bounded vertically & horizontally — always perfectly fitted & centered
                  ======================================================== */
               <div
-                className="relative w-full max-w-4xl lg:max-w-5xl aspect-video bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-2xl flex items-center justify-center mx-auto"
-                style={{ maxHeight: '100%' }}
+                className="relative bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-2xl flex items-center justify-center mx-auto select-none"
+                style={{
+                  height: '100%',
+                  maxHeight: 'min(calc(100dvh - 170px), 600px)',
+                  aspectRatio: '16 / 9',
+                  maxWidth: 'min(94vw, calc(min(calc(100dvh - 170px), 600px) * 16 / 9))',
+                }}
               >
                 {embedUrl ? (
                   <iframe
@@ -379,7 +382,8 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                       controls
                       autoPlay
                       playsInline
-                      preload="none"
+                      loop
+                      preload="auto"
                       onError={() => setVideoLoadFailed(true)}
                       className="w-full h-full object-contain"
                       style={{ objectPosition: 'center center' }}
@@ -388,19 +392,22 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                       <source src={directVideoUrl} />
                     </video>
                   ) : (
-                    <iframe
-                      src={driveFallbackUrl || activeVideoUrl}
-                      title={activeVideo?.title || project.title}
-                      className="w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                    />
+                    <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 z-10">
+                      <p className="text-zinc-400 text-xs sm:text-sm">Gagal memuat video secara langsung.</p>
+                      <button
+                        type="button"
+                        onClick={() => { setVideoLoadFailed(false); setVideoStarted(true); }}
+                        className="px-4 py-2 bg-[#C5A880] text-black font-semibold text-xs rounded uppercase tracking-wider cursor-pointer hover:bg-[#E2D2BC] transition-colors"
+                      >
+                        Coba Putar Ulang
+                      </button>
+                    </div>
                   )
                 ) : (
                   /* Click-to-Play Overlay — Landscape */
                   <button
                     type="button"
-                    onClick={() => setVideoStarted(true)}
+                    onClick={() => { setVideoStarted(true); setVideoLoadFailed(false); }}
                     className="w-full h-full relative flex items-center justify-center cursor-pointer group/play"
                     aria-label="Putar video"
                   >
@@ -409,7 +416,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                       alt={project.title}
                       className="absolute inset-0 w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-black/50 group-hover/play:bg-black/40 transition-colors" />
+                    <div className="absolute inset-0 bg-black/45 group-hover/play:bg-black/35 transition-colors" />
                     <div className="relative z-10 flex flex-col items-center gap-3">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 border-2 border-[#C5A880] flex items-center justify-center shadow-2xl group-hover/play:scale-110 group-hover/play:border-[#E2D2BC] transition-all duration-200">
                         <Play className="w-7 h-7 sm:w-9 sm:h-9 text-[#C5A880] fill-[#C5A880] ml-1" />

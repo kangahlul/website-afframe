@@ -205,7 +205,9 @@ export const PortfolioPage: React.FC = () => {
                   >
                     {/* Media Container */}
                     <div className={`relative overflow-hidden bg-black ${
-                      isPortrait ? 'aspect-[9/16]' : 'aspect-[4/5]'
+                      isVideo
+                        ? isPortrait ? 'aspect-[9/16]' : 'aspect-video'
+                        : 'aspect-[4/5]'
                     }`}>
                       <img
                         src={normalizeThumb(project.cover_image_url)}

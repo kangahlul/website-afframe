@@ -115,7 +115,7 @@ router.delete('/categories/:id', authenticateToken, async (req, res) => {
 // GET /api/portfolio/projects (public & admin)
 router.get('/projects', async (req, res) => {
   try {
-    const { category, featured, search, all, limit = 50, page = 1, media_type } = req.query;
+    const { category, featured, search, all, limit = 200, page = 1, media_type } = req.query;
     let query = `
       SELECT pp.*, pc.name as category_name, pc.slug as category_slug
       FROM portfolio_projects pp

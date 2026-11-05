@@ -321,25 +321,60 @@ router.get('/stream-drive', (req, res) => {
   };
   if (req.headers.range) forwardHeaders['Range'] = req.headers.range;
 
-  const driveReq = https.get(targetUrl, { headers: forwardHeaders }, (driveRes) => {
-    // Follow redirect jika ada
-    if (driveRes.statusCode >= 300 && driveRes.statusCode < 400 && driveRes.headers.location) {
-      driveRes.resume();
-      const redirectReq = https.get(driveRes.headers.location, { headers: forwardHeaders }, (redirectRes) => {
-        sendVideoResponse(req, res, redirectRes);
-      });
-      redirectReq.on('error', () => { if (!res.headersSent) res.status(502).end(); });
+  let activeReq = null;
+  req.on('close', () => {
+    if (activeReq) {
+      try { activeReq.destroy(); } catch (_) {}
+    }
+  });
+
+  function fetchUrl(url, currentHeaders, redirectCount = 0) {
+    if (redirectCount > 5) {
+      if (!res.headersSent) res.status(502).json({ error: 'Terlalu banyak redirect.' });
       return;
     }
-    sendVideoResponse(req, res, driveRes);
-  });
 
-  driveReq.on('error', (err) => {
-    console.error('[Drive Stream Error]', err.message);
-    if (!res.headersSent) res.status(502).json({ error: 'Gagal streaming video.' });
-  });
+    activeReq = https.get(url, { headers: currentHeaders }, (driveRes) => {
+      const cookies = (driveRes.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
+      const newHeaders = { ...currentHeaders };
+      if (cookies) {
+        newHeaders['Cookie'] = currentHeaders['Cookie'] ? `${currentHeaders['Cookie']}; ${cookies}` : cookies;
+      }
 
-  req.on('close', () => driveReq.destroy());
+      // 1. Follow HTTP Redirects (301, 302, 303, 307, 308)
+      if (driveRes.statusCode >= 300 && driveRes.statusCode < 400 && driveRes.headers.location) {
+        driveRes.resume();
+        fetchUrl(driveRes.headers.location, newHeaders, redirectCount + 1);
+        return;
+      }
+
+      // 2. Check for Google Drive "Virus scan warning" HTML page (files > ~25MB/100MB)
+      const isHtml = (driveRes.headers['content-type'] || '').includes('text/html');
+      if (driveRes.statusCode === 200 && isHtml) {
+        let html = '';
+        driveRes.on('data', chunk => {
+          if (html.length < 50000) html += chunk.toString();
+        });
+        driveRes.on('end', () => {
+          const uuidMatch = html.match(/name=["']uuid["']\s+value=["']([^"']+)["']/i);
+          const uuid = uuidMatch ? uuidMatch[1] : '';
+          const confirmUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0&confirm=t${uuid ? '&uuid=' + uuid : ''}`;
+          fetchUrl(confirmUrl, newHeaders, redirectCount + 1);
+        });
+        return;
+      }
+
+      // 3. Valid video stream received
+      sendVideoResponse(req, res, driveRes);
+    });
+
+    activeReq.on('error', (err) => {
+      console.error('[Drive Stream Error]', err.message);
+      if (!res.headersSent) res.status(502).json({ error: 'Gagal streaming video.' });
+    });
+  }
+
+  fetchUrl(targetUrl, forwardHeaders);
 });
 
 function sendVideoResponse(req, res, driveRes) {
@@ -354,7 +389,9 @@ function sendVideoResponse(req, res, driveRes) {
   if (driveRes.headers['content-range']) res.setHeader('Content-Range', driveRes.headers['content-range']);
   if (driveRes.headers['content-length']) res.setHeader('Content-Length', driveRes.headers['content-length']);
   driveRes.pipe(res);
-  req.on('close', () => driveRes.destroy());
+  req.on('close', () => {
+    try { driveRes.destroy(); } catch (_) {}
+  });
 }
 
 module.exports = router;
