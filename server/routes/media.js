@@ -310,45 +310,146 @@ const streamAgent = new https.Agent({
   timeout: 60000,
 });
 
+// Local video cache directory on disk
+const videoCacheDir = isVercel ? path.join('/tmp', 'video_cache') : path.join(__dirname, '../video_cache');
+try {
+  if (!fs.existsSync(videoCacheDir)) {
+    fs.mkdirSync(videoCacheDir, { recursive: true });
+  }
+} catch (_) {}
+
 // In-memory cache for resolved Google Drive download endpoints (TTL: 2 hours)
-// Eliminates the multi-hop handshake & HTML virus scan re-parsing on every Range request chunk!
 const driveResolvedCache = new Map();
-const inFlightPrewarms = new Set();
+const activeDownloads = new Set();
+
+function startBackgroundDownload(cleanId) {
+  if (!cleanId || activeDownloads.has(cleanId)) return;
+  const targetFile = path.join(videoCacheDir, `${cleanId}.mp4`);
+  const partFile = path.join(videoCacheDir, `${cleanId}.part`);
+
+  if (fs.existsSync(targetFile)) {
+    try {
+      if (fs.statSync(targetFile).size > 100000) return;
+    } catch (_) {}
+  }
+
+  activeDownloads.add(cleanId);
+  const targetUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0&confirm=t`;
+
+  const fileStream = fs.createWriteStream(partFile);
+  const req = https.get(targetUrl, {
+    agent: streamAgent,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': '*/*'
+    }
+  }, (res) => {
+    // If redirect:
+    if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+      res.resume();
+      https.get(res.headers.location, { agent: streamAgent }, (res2) => {
+        if (res2.statusCode === 200) {
+          res2.pipe(fileStream);
+          fileStream.on('finish', () => {
+            fileStream.close();
+            try {
+              if (fs.existsSync(partFile) && fs.statSync(partFile).size > 100000) {
+                fs.renameSync(partFile, targetFile);
+                console.log(`[Video Cache] Cached ${cleanId}.mp4 (${(fs.statSync(targetFile).size / 1024 / 1024).toFixed(1)}MB)`);
+              }
+            } catch (_) {}
+            activeDownloads.delete(cleanId);
+          });
+        } else {
+          fileStream.close();
+          activeDownloads.delete(cleanId);
+        }
+      });
+      return;
+    }
+
+    if (res.statusCode === 200) {
+      res.pipe(fileStream);
+      fileStream.on('finish', () => {
+        fileStream.close();
+        try {
+          if (fs.existsSync(partFile) && fs.statSync(partFile).size > 100000) {
+            fs.renameSync(partFile, targetFile);
+            console.log(`[Video Cache] Cached ${cleanId}.mp4 (${(fs.statSync(targetFile).size / 1024 / 1024).toFixed(1)}MB)`);
+          }
+        } catch (_) {}
+        activeDownloads.delete(cleanId);
+      });
+    } else {
+      fileStream.close();
+      activeDownloads.delete(cleanId);
+    }
+  });
+
+  req.on('error', () => {
+    try { fileStream.close(); } catch (_) {}
+    activeDownloads.delete(cleanId);
+  });
+}
+
+function serveLocalVideoFile(req, res, filePath, cleanId) {
+  try {
+    const stat = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    if (cleanId) res.setHeader('ETag', `"${cleanId}"`);
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunkSize = (end - start) + 1;
+
+      res.statusCode = 206;
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+      res.setHeader('Content-Length', chunkSize);
+
+      const stream = fs.createReadStream(filePath, { start, end });
+      stream.pipe(res);
+      req.on('close', () => {
+        try { stream.destroy(); } catch (_) {}
+      });
+    } else {
+      res.statusCode = 200;
+      res.setHeader('Content-Length', fileSize);
+      const stream = fs.createReadStream(filePath);
+      stream.pipe(res);
+      req.on('close', () => {
+        try { stream.destroy(); } catch (_) {}
+      });
+    }
+  } catch (err) {
+    console.error('[Local Video Serve Error]', err.message);
+  }
+}
 
 function prewarmDriveVideo(fileId) {
   if (!fileId || typeof fileId !== 'string') return;
   const cleanId = fileId.replace(/[^a-zA-Z0-9_-]/g, '');
-  if (!cleanId || driveResolvedCache.has(cleanId) || inFlightPrewarms.has(cleanId)) return;
-
-  inFlightPrewarms.add(cleanId);
-  const targetUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0&confirm=t`;
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': '*/*',
-    'Range': 'bytes=0-1',
-  };
-
-  const req = https.get(targetUrl, { agent: streamAgent, headers }, (res) => {
-    const cookies = (res.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      driveResolvedCache.set(cleanId, {
-        url: targetUrl,
-        cookie: cookies || '',
-        expiresAt: Date.now() + 1000 * 60 * 60 * 2,
-      });
-    }
-    res.resume();
-    inFlightPrewarms.delete(cleanId);
-  });
-  req.on('error', () => {
-    inFlightPrewarms.delete(cleanId);
-  });
+  if (!cleanId) return;
+  startBackgroundDownload(cleanId);
 }
 
 function prewarmDriveVideos(fileIds = []) {
   if (!Array.isArray(fileIds)) return;
-  fileIds.slice(0, 15).forEach((id, idx) => {
-    setTimeout(() => prewarmDriveVideo(id), idx * 250);
+  let delay = 500;
+  fileIds.forEach((id) => {
+    setTimeout(() => {
+      prewarmDriveVideo(id);
+    }, delay);
+    delay += 2500; // stagger 2.5s apart to prevent network saturation
   });
 }
 
@@ -362,6 +463,20 @@ router.get('/stream-drive', (req, res) => {
 
   const cleanId = fileId.replace(/[^a-zA-Z0-9_-]/g, '');
   if (!cleanId) return res.status(400).json({ error: 'ID tidak valid.' });
+
+  // 1. Ultra Fast Path: serve from local disk cache if already downloaded
+  const localCachedFile = path.join(videoCacheDir, `${cleanId}.mp4`);
+  if (fs.existsSync(localCachedFile)) {
+    try {
+      const sz = fs.statSync(localCachedFile).size;
+      if (sz > 100000) {
+        return serveLocalVideoFile(req, res, localCachedFile, cleanId);
+      }
+    } catch (_) {}
+  }
+
+  // Not on disk yet: start background download so subsequent requests & loops are local!
+  startBackgroundDownload(cleanId);
 
   // Direct confirm parameter immediately bypasses virus warning page
   const targetUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0&confirm=t`;

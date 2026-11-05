@@ -24,4 +24,5 @@ Thumbs.db
 .idea/
 scratch/
 server/data/turso-replica*
+server/video_cache/
 
