@@ -133,8 +133,14 @@ router.get('/projects', async (req, res) => {
     }
 
     if (media_type && media_type !== 'all') {
-      query += ' AND pp.media_type = ?';
-      params.push(media_type);
+      if (media_type === 'photo') {
+        query += ` AND (pp.media_type = 'photo' OR EXISTS (SELECT 1 FROM portfolio_images WHERE project_id = pp.id) OR pp.featured_video_url IS NULL OR pp.featured_video_url = '')`;
+      } else if (media_type === 'video') {
+        query += ` AND (pp.media_type = 'video' OR (pp.featured_video_url IS NOT NULL AND pp.featured_video_url != '') OR EXISTS (SELECT 1 FROM portfolio_videos WHERE project_id = pp.id))`;
+      } else {
+        query += ' AND pp.media_type = ?';
+        params.push(media_type);
+      }
     }
 
     if (category && category !== 'all') {

@@ -302,6 +302,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// In-memory cache for resolved Google Drive download endpoints (TTL: 30 minutes)
+// Eliminates the multi-hop handshake & HTML virus scan re-parsing on every Range request chunk!
+const driveResolvedCache = new Map();
+
 // GET /api/media/stream-drive?id=FILE_ID
 // Proxy Google Drive video dengan Range requests & CORS — clean HTML5 player tanpa UI Google Drive
 router.get('/stream-drive', (req, res) => {
@@ -327,6 +331,33 @@ router.get('/stream-drive', (req, res) => {
       try { activeReq.destroy(); } catch (_) {}
     }
   });
+
+  // Fast path: if resolved URL is already cached, stream directly with zero HTML overhead!
+  const cached = driveResolvedCache.get(cleanId);
+  if (cached && Date.now() < cached.expiresAt) {
+    const fastHeaders = { ...forwardHeaders };
+    if (cached.cookie) fastHeaders['Cookie'] = cached.cookie;
+    activeReq = https.get(cached.url, { headers: fastHeaders }, (driveRes) => {
+      // Follow redirect if CDN rotated
+      if (driveRes.statusCode >= 300 && driveRes.statusCode < 400 && driveRes.headers.location) {
+        driveRes.resume();
+        fetchUrl(driveRes.headers.location, fastHeaders);
+        return;
+      }
+      if (driveRes.statusCode >= 200 && driveRes.statusCode < 300) {
+        sendVideoResponse(req, res, driveRes);
+        return;
+      }
+      // If cached URL returned non-2xx (e.g. token expired), evict and resolve fresh
+      driveResolvedCache.delete(cleanId);
+      fetchUrl(targetUrl, forwardHeaders);
+    });
+    activeReq.on('error', () => {
+      driveResolvedCache.delete(cleanId);
+      fetchUrl(targetUrl, forwardHeaders);
+    });
+    return;
+  }
 
   function fetchUrl(url, currentHeaders, redirectCount = 0) {
     if (redirectCount > 5) {
@@ -359,9 +390,26 @@ router.get('/stream-drive', (req, res) => {
           const uuidMatch = html.match(/name=["']uuid["']\s+value=["']([^"']+)["']/i);
           const uuid = uuidMatch ? uuidMatch[1] : '';
           const confirmUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0&confirm=t${uuid ? '&uuid=' + uuid : ''}`;
+          
+          // Cache the confirmed URL for future instant streaming!
+          driveResolvedCache.set(cleanId, {
+            url: confirmUrl,
+            cookie: newHeaders['Cookie'] || '',
+            expiresAt: Date.now() + 1000 * 60 * 30 // 30 minutes
+          });
+
           fetchUrl(confirmUrl, newHeaders, redirectCount + 1);
         });
         return;
+      }
+
+      // Cache direct URL if it streamed without virus warning
+      if (driveRes.statusCode >= 200 && driveRes.statusCode < 300) {
+        driveResolvedCache.set(cleanId, {
+          url,
+          cookie: newHeaders['Cookie'] || '',
+          expiresAt: Date.now() + 1000 * 60 * 30
+        });
       }
 
       // 3. Valid video stream received

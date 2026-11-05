@@ -59,11 +59,13 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
       p.category_slug === selectedCategory ||
       String(p.category_id) === selectedCategory;
 
-    const isVideo = p.media_type === 'video' || Boolean(p.featured_video_url && p.featured_video_url.trim());
+    const hasVideo = p.media_type === 'video' || Boolean(p.featured_video_url && p.featured_video_url.trim()) || (p.videos && p.videos.length > 0);
+    const hasPhoto = p.media_type === 'photo' || (p.images && p.images.length > 0) || !p.featured_video_url || Boolean(p.cover_image_url);
+
     const matchMedia =
       mediaFilter === 'all' ||
-      (mediaFilter === 'video' && isVideo) ||
-      (mediaFilter === 'photo' && !isVideo);
+      (mediaFilter === 'video' && hasVideo) ||
+      (mediaFilter === 'photo' && hasPhoto);
 
     return matchCat && matchMedia;
   });
@@ -252,7 +254,9 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                 const isVideo = project.media_type === 'video' || Boolean(project.featured_video_url && project.featured_video_url.trim());
                 const isPortrait = project.orientation === 'portrait';
                 const isHovered = hoveredVideoId === project.id;
-                const isDirectVideo = isVideo && project.featured_video_url && (
+                const isCardPhoto = mediaFilter === 'photo' || (!isVideo && Boolean(project.cover_image_url));
+                const photoCount = project.images && project.images.length > 0 ? project.images.length + 1 : 1;
+                const isDirectVideo = !isCardPhoto && isVideo && project.featured_video_url && (
                   project.featured_video_url.endsWith('.mp4') ||
                   project.featured_video_url.endsWith('.webm') ||
                   project.featured_video_url.includes('/uploads/')
@@ -272,7 +276,9 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                   >
                     {/* Media Card Container */}
                     <div className={`relative overflow-hidden bg-black ${
-                      isPortrait ? 'aspect-[9/16]' : 'aspect-video'
+                      isCardPhoto
+                        ? isPortrait ? 'aspect-[9/16]' : 'aspect-[4/3]'
+                        : isPortrait ? 'aspect-[9/16]' : 'aspect-video'
                     }`}>
                       {/* Direct Video Auto-Preview on Hover */}
                       {isDirectVideo && isHovered ? (
@@ -304,7 +310,12 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                           </span>
                         ) : <span />}
 
-                        {isVideo ? (
+                        {isCardPhoto ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-black/80 text-[#E2D2BC] rounded-xs border border-[#C5A880]/50 shadow">
+                            <ImageIcon className="w-2.5 h-2.5 text-[#C5A880]" />
+                            <span>{photoCount > 1 ? `${photoCount} Foto` : 'Foto'}</span>
+                          </span>
+                        ) : isVideo ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-500/90 text-black rounded-xs shadow">
                             <Film className="w-2.5 h-2.5" />
                             <span>{isPortrait ? '9:16' : '16:9'}</span>
@@ -317,17 +328,14 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                         )}
                       </div>
 
-                      {/* Center Play Button on Video Cards */}
-                      {isVideo && (
+                      {/* Center Action */}
+                      {!isCardPhoto && isVideo ? (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                           <div className="w-13 h-13 rounded-full bg-[#C5A880] text-black flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform duration-300 ring-4 ring-[#C5A880]/30">
                             <Play className="w-5 h-5 fill-current ml-0.5" />
                           </div>
                         </div>
-                      )}
-
-                      {/* Eye Preview button for photo cards */}
-                      {!isVideo && (
+                      ) : (
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                           <div className="w-12 h-12 rounded-full bg-black/80 text-[#C5A880] flex items-center justify-center shadow-xl border border-[#C5A880]/40">
                             <Eye className="w-5 h-5" />
@@ -349,7 +357,7 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                     {/* Card Meta Footer */}
                     <div className="p-3 bg-[#131316] flex items-center justify-between text-[11px] text-zinc-500 border-t border-zinc-800/80">
                       <span className="text-[10px] text-zinc-400 font-mono">
-                        {isVideo ? 'Klik untuk Tonton' : 'Klik untuk Lihat Foto'}
+                        {isCardPhoto ? 'Klik untuk Lihat Foto' : isVideo ? 'Klik untuk Tonton' : 'Klik untuk Lihat Foto'}
                       </span>
                       <span className="text-[#C5A880] group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 font-semibold text-[10px]">
                         <span>Buka</span>
@@ -373,6 +381,8 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
             {filteredProjects.map((project, idx) => {
               const isVideo = project.media_type === 'video' || Boolean(project.featured_video_url && project.featured_video_url.trim());
               const isPortrait = project.orientation === 'portrait';
+              const isCardPhoto = mediaFilter === 'photo' || (!isVideo && Boolean(project.cover_image_url));
+              const photoCount = project.images && project.images.length > 0 ? project.images.length + 1 : 1;
 
               return (
                 <div
@@ -381,9 +391,9 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                   className="group relative flex flex-col bg-[#131316] border border-[#24242A] hover:border-[#C5A880]/60 rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 shadow-lg"
                 >
                   <div className={`relative overflow-hidden bg-black ${
-                    isVideo
-                      ? isPortrait ? 'aspect-[9/16]' : 'aspect-video'
-                      : 'aspect-[4/5]'
+                    isCardPhoto
+                      ? isPortrait ? 'aspect-[9/16]' : 'aspect-[4/3]'
+                      : isPortrait ? 'aspect-[9/16]' : 'aspect-video'
                   }`}>
                     <img
                       src={normalizeThumb(project.cover_image_url)}
@@ -402,16 +412,26 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                         </span>
                       )}
 
-                      {isVideo && (
+                      {isCardPhoto ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-black/80 text-[#E2D2BC] rounded-xs border border-[#C5A880]/50 shadow">
+                          <ImageIcon className="w-2.5 h-2.5 text-[#C5A880]" />
+                          <span>{photoCount > 1 ? `${photoCount} Foto` : 'Foto'}</span>
+                        </span>
+                      ) : isVideo ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-500 text-black rounded-xs shadow">
                           <Film className="w-2.5 h-2.5" />
                           <span>{isPortrait ? 'Reels 9:16' : '16:9'}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-black/70 text-zinc-300 rounded-xs border border-zinc-700">
+                          <ImageIcon className="w-2.5 h-2.5" />
+                          <span>Foto</span>
                         </span>
                       )}
                     </div>
 
                     {/* Center Action */}
-                    {isVideo ? (
+                    {!isCardPhoto && isVideo ? (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="w-12 h-12 rounded-full bg-[#C5A880] text-black flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform ring-4 ring-[#C5A880]/30">
                           <Play className="w-5 h-5 fill-current ml-0.5" />
@@ -438,7 +458,9 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
 
                     <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500">
                       <span>{project.location || 'Surabaya'}</span>
-                      <span className="text-[#C5A880] font-semibold text-[10px]">Tonton / Lihat →</span>
+                      <span className="text-[#C5A880] font-semibold text-[10px]">
+                        {isCardPhoto ? 'Lihat Foto →' : 'Tonton / Lihat →'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -456,6 +478,7 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
           isOpen={activeModalIndex !== null}
           onClose={() => setActiveModalIndex(null)}
           onNavigate={(newIdx) => setActiveModalIndex(newIdx)}
+          initialMediaMode={mediaFilter === 'photo' ? 'photo' : undefined}
         />
       )}
     </section>

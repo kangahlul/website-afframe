@@ -53,9 +53,10 @@ export const PortfolioPage: React.FC = () => {
 
   // Filter projects by Media Type
   const filteredProjects = projects.filter(p => {
-    const isVideo = p.media_type === 'video' || Boolean(p.featured_video_url && p.featured_video_url.trim());
-    if (mediaFilter === 'video') return isVideo;
-    if (mediaFilter === 'photo') return !isVideo;
+    const hasVideo = p.media_type === 'video' || Boolean(p.featured_video_url && p.featured_video_url.trim()) || (p.videos && p.videos.length > 0);
+    const hasPhoto = p.media_type === 'photo' || (p.images && p.images.length > 0) || !p.featured_video_url || Boolean(p.cover_image_url);
+    if (mediaFilter === 'video') return hasVideo;
+    if (mediaFilter === 'photo') return hasPhoto;
     return true;
   });
 
@@ -196,6 +197,8 @@ export const PortfolioPage: React.FC = () => {
               {filteredProjects.map((project, idx) => {
                 const isVideo = project.media_type === 'video' || Boolean(project.featured_video_url && project.featured_video_url.trim());
                 const isPortrait = project.orientation === 'portrait';
+                const isCardPhoto = mediaFilter === 'photo' || (!isVideo && Boolean(project.cover_image_url));
+                const photoCount = project.images && project.images.length > 0 ? project.images.length + 1 : 1;
 
                 return (
                   <div
@@ -205,9 +208,9 @@ export const PortfolioPage: React.FC = () => {
                   >
                     {/* Media Container */}
                     <div className={`relative overflow-hidden bg-black ${
-                      isVideo
-                        ? isPortrait ? 'aspect-[9/16]' : 'aspect-video'
-                        : 'aspect-[4/5]'
+                      isCardPhoto
+                        ? isPortrait ? 'aspect-[9/16]' : 'aspect-[4/3]'
+                        : isPortrait ? 'aspect-[9/16]' : 'aspect-video'
                     }`}>
                       <img
                         src={normalizeThumb(project.cover_image_url)}
@@ -227,7 +230,12 @@ export const PortfolioPage: React.FC = () => {
                           </span>
                         ) : <span />}
 
-                        {isVideo ? (
+                        {isCardPhoto ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-black/80 text-[#E2D2BC] rounded-xs border border-[#C5A880]/50 shadow">
+                            <ImageIcon className="w-2.5 h-2.5 text-[#C5A880]" />
+                            <span>{photoCount > 1 ? `${photoCount} Foto` : 'Foto'}</span>
+                          </span>
+                        ) : isVideo ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-500 text-black rounded-xs shadow">
                             <Film className="w-2.5 h-2.5" />
                             <span>{isPortrait ? '9:16 Reels' : '16:9'}</span>
@@ -241,7 +249,7 @@ export const PortfolioPage: React.FC = () => {
                       </div>
 
                       {/* Center Play Button for Video */}
-                      {isVideo && (
+                      {!isCardPhoto && isVideo && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                           <div className="w-12 h-12 rounded-full bg-[#C5A880] text-black flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform duration-300 ring-4 ring-[#C5A880]/30">
                             <Play className="w-5 h-5 fill-current ml-0.5" />
@@ -250,7 +258,7 @@ export const PortfolioPage: React.FC = () => {
                       )}
 
                       {/* Eye Icon for Photo */}
-                      {!isVideo && (
+                      {isCardPhoto && (
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                           <div className="w-11 h-11 rounded-full bg-black/80 text-[#C5A880] flex items-center justify-center shadow-xl border border-[#C5A880]/40">
                             <Eye className="w-4 h-4" />
@@ -272,7 +280,7 @@ export const PortfolioPage: React.FC = () => {
                     {/* Meta details footer */}
                     <div className="p-3 bg-[#131316] flex items-center justify-between text-[11px] text-zinc-500 border-t border-zinc-800/80">
                       <span className="text-[10px] text-zinc-400 font-mono">
-                        {isVideo ? 'Klik untuk Tonton' : 'Klik untuk Lihat Foto'}
+                        {isCardPhoto ? `Buka Galeri (${photoCount} Foto)` : isVideo ? 'Klik untuk Tonton' : 'Klik untuk Lihat Foto'}
                       </span>
                       <span className="text-[#C5A880] group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 font-semibold text-[10px]">
                         <span>Buka</span>
@@ -295,6 +303,7 @@ export const PortfolioPage: React.FC = () => {
             projects={filteredProjects}
             currentIndex={activeModalIndex}
             isOpen={activeModalIndex !== null}
+            initialMediaMode={mediaFilter === 'photo' ? 'photo' : undefined}
             onClose={() => setActiveModalIndex(null)}
             onNavigate={(newIdx) => setActiveModalIndex(newIdx)}
           />

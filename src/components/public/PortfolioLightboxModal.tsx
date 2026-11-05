@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { X, ChevronLeft, ChevronRight, Film, Image as ImageIcon, MessageCircle, ExternalLink, Play } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Film, Image as ImageIcon, MessageCircle, ExternalLink, Play, Loader2 } from 'lucide-react';
 import { PortfolioProject, PortfolioVideo } from '../../types';
 import {
   getVideoEmbedUrl,
@@ -17,6 +17,7 @@ interface PortfolioLightboxModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (index: number) => void;
+  initialMediaMode?: 'video' | 'photo';
 }
 
 export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
@@ -25,12 +26,14 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   isOpen,
   onClose,
   onNavigate,
+  initialMediaMode,
 }) => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState<number>(0);
-  const [activeMediaMode, setActiveMediaMode] = useState<'video' | 'photo'>('video');
+  const [activeMediaMode, setActiveMediaMode] = useState<'video' | 'photo'>(initialMediaMode || 'video');
   const [videoLoadFailed, setVideoLoadFailed] = useState(false);
   const [videoStarted, setVideoStarted] = useState(false); // click-to-play: video hanya load saat diklik
+  const [isVideoBuffering, setIsVideoBuffering] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
   const total = projects.length;
@@ -42,15 +45,38 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
     setSelectedVideoIndex(0);
     setVideoLoadFailed(false);
     setVideoStarted(false); // reset play state tiap ganti project
+    setIsVideoBuffering(false);
     if (!project) return;
-    if (project.media_type === 'photo') {
+    
+    if (initialMediaMode) {
+      setActiveMediaMode(initialMediaMode);
+    } else if (project.media_type === 'photo' || ((!project.featured_video_url || !project.featured_video_url.trim()) && (!project.videos || project.videos.length === 0))) {
       setActiveMediaMode('photo');
     } else if (project.media_type === 'video') {
       setActiveMediaMode('video');
     } else {
       setActiveMediaMode(project.featured_video_url ? 'video' : 'photo');
     }
-  }, [currentIndex, project]);
+  }, [currentIndex, project, initialMediaMode]);
+
+  // Determine all available videos for this project
+  const projectVideos: PortfolioVideo[] = (project?.videos && project.videos.length > 0)
+    ? project.videos
+    : project?.featured_video_url
+      ? [{ title: 'Video Utama', video_url: project.featured_video_url, orientation: project.orientation || 'portrait' }]
+      : [];
+
+  // All photos for photo viewer (deduplicated)
+  const allImages = project
+    ? Array.from(new Set([
+        project.cover_image_url,
+        ...(project.images ? project.images.map(img => img.image_url) : [])
+      ])).filter(Boolean)
+    : [];
+
+  const hasVideos = projectVideos.length > 0;
+  const hasPhotos = allImages.length > 0;
+  const isVideoMode = (activeMediaMode === 'video' && hasVideos) || (!hasPhotos && hasVideos);
 
   const handlePrev = useCallback(() => {
     if (total <= 1) return;
@@ -62,6 +88,22 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
     onNavigate((currentIndex + 1) % total);
   }, [currentIndex, total, onNavigate]);
 
+  const handlePrevPhoto = useCallback(() => {
+    if (allImages.length <= 1) {
+      handlePrev();
+      return;
+    }
+    setSelectedPhotoIndex(prev => (prev - 1 + allImages.length) % allImages.length);
+  }, [allImages.length, handlePrev]);
+
+  const handleNextPhoto = useCallback(() => {
+    if (allImages.length <= 1) {
+      handleNext();
+      return;
+    }
+    setSelectedPhotoIndex(prev => (prev + 1) % allImages.length);
+  }, [allImages.length, handleNext]);
+
   // Keyboard navigation (ArrowLeft, ArrowRight, Escape)
   useEffect(() => {
     if (!isOpen) return;
@@ -69,10 +111,18 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        handlePrev();
+        if (!isVideoMode && allImages.length > 1) {
+          handlePrevPhoto();
+        } else {
+          handlePrev();
+        }
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        handleNext();
+        if (!isVideoMode && allImages.length > 1) {
+          handleNextPhoto();
+        } else {
+          handleNext();
+        }
       } else if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
@@ -81,7 +131,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handlePrev, handleNext, onClose]);
+  }, [isOpen, handlePrev, handleNext, handlePrevPhoto, handleNextPhoto, isVideoMode, allImages.length, onClose]);
 
   // Prevent background scroll
   useEffect(() => {
@@ -105,32 +155,23 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
     const diff = e.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(diff) > 50) {
       if (diff > 0) {
-        handlePrev();
+        if (!isVideoMode && allImages.length > 1) {
+          handlePrevPhoto();
+        } else {
+          handlePrev();
+        }
       } else {
-        handleNext();
+        if (!isVideoMode && allImages.length > 1) {
+          handleNextPhoto();
+        } else {
+          handleNext();
+        }
       }
     }
     touchStartX.current = null;
   };
 
   if (!isOpen || !project) return null;
-
-  // Determine all available videos for this project
-  const projectVideos: PortfolioVideo[] = (project.videos && project.videos.length > 0)
-    ? project.videos
-    : project.featured_video_url
-      ? [{ title: 'Video Utama', video_url: project.featured_video_url, orientation: project.orientation || 'portrait' }]
-      : [];
-
-  // All photos for photo viewer
-  const allImages = [
-    project.cover_image_url,
-    ...(project.images ? project.images.map(img => img.image_url) : [])
-  ].filter(Boolean);
-
-  const hasVideos = projectVideos.length > 0;
-  const hasPhotos = allImages.length > 0;
-  const isVideoMode = (activeMediaMode === 'video' && hasVideos) || (!hasPhotos && hasVideos);
 
   // Active video
   const activeVideo: PortfolioVideo | undefined = projectVideos[selectedVideoIndex] || projectVideos[0];
@@ -302,27 +343,39 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                   />
                 ) : videoStarted ? (
                   !videoLoadFailed ? (
-                    <video
-                      key={directVideoUrl}
-                      src={directVideoUrl}
-                      controls
-                      autoPlay
-                      playsInline
-                      loop
-                      preload="auto"
-                      onError={() => setVideoLoadFailed(true)}
-                      className="w-full h-full object-contain"
-                      style={{ objectPosition: 'center center' }}
-                    >
-                      <source src={directVideoUrl} type="video/mp4" />
-                      <source src={directVideoUrl} />
-                    </video>
+                    <div className="relative w-full h-full flex items-center justify-center">
+                      {isVideoBuffering && (
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 pointer-events-none transition-opacity">
+                          <Loader2 className="w-10 h-10 text-[#C5A880] animate-spin mb-2" />
+                          <span className="text-[11px] font-sans text-[#C5A880] tracking-widest uppercase font-semibold">Memuat Video...</span>
+                        </div>
+                      )}
+                      <video
+                        key={directVideoUrl}
+                        src={directVideoUrl}
+                        controls
+                        autoPlay
+                        playsInline
+                        loop
+                        preload="auto"
+                        onLoadedData={() => setIsVideoBuffering(false)}
+                        onCanPlay={() => setIsVideoBuffering(false)}
+                        onWaiting={() => setIsVideoBuffering(true)}
+                        onPlaying={() => setIsVideoBuffering(false)}
+                        onError={() => { setVideoLoadFailed(true); setIsVideoBuffering(false); }}
+                        className="w-full h-full object-contain"
+                        style={{ objectPosition: 'center center' }}
+                      >
+                        <source src={directVideoUrl} type="video/mp4" />
+                        <source src={directVideoUrl} />
+                      </video>
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 z-10">
                       <p className="text-zinc-400 text-xs sm:text-sm">Gagal memuat video secara langsung.</p>
                       <button
                         type="button"
-                        onClick={() => { setVideoLoadFailed(false); setVideoStarted(true); }}
+                        onClick={() => { setVideoLoadFailed(false); setVideoStarted(true); setIsVideoBuffering(true); }}
                         className="px-4 py-2 bg-[#C5A880] text-black font-semibold text-xs rounded uppercase tracking-wider cursor-pointer hover:bg-[#E2D2BC] transition-colors"
                       >
                         Coba Putar Ulang
@@ -333,7 +386,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                   /* Click-to-Play Overlay — Portrait */
                   <button
                     type="button"
-                    onClick={() => { setVideoStarted(true); setVideoLoadFailed(false); }}
+                    onClick={() => { setVideoStarted(true); setVideoLoadFailed(false); setIsVideoBuffering(true); }}
                     className="w-full h-full relative flex items-center justify-center cursor-pointer group/play"
                     aria-label="Putar video"
                   >
@@ -376,27 +429,39 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                   />
                 ) : videoStarted ? (
                   !videoLoadFailed ? (
-                    <video
-                      key={directVideoUrl}
-                      src={directVideoUrl}
-                      controls
-                      autoPlay
-                      playsInline
-                      loop
-                      preload="auto"
-                      onError={() => setVideoLoadFailed(true)}
-                      className="w-full h-full object-contain"
-                      style={{ objectPosition: 'center center' }}
-                    >
-                      <source src={directVideoUrl} type="video/mp4" />
-                      <source src={directVideoUrl} />
-                    </video>
+                    <div className="relative w-full h-full flex items-center justify-center">
+                      {isVideoBuffering && (
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 pointer-events-none transition-opacity">
+                          <Loader2 className="w-10 h-10 text-[#C5A880] animate-spin mb-2" />
+                          <span className="text-[11px] font-sans text-[#C5A880] tracking-widest uppercase font-semibold">Memuat Video...</span>
+                        </div>
+                      )}
+                      <video
+                        key={directVideoUrl}
+                        src={directVideoUrl}
+                        controls
+                        autoPlay
+                        playsInline
+                        loop
+                        preload="auto"
+                        onLoadedData={() => setIsVideoBuffering(false)}
+                        onCanPlay={() => setIsVideoBuffering(false)}
+                        onWaiting={() => setIsVideoBuffering(true)}
+                        onPlaying={() => setIsVideoBuffering(false)}
+                        onError={() => { setVideoLoadFailed(true); setIsVideoBuffering(false); }}
+                        className="w-full h-full object-contain"
+                        style={{ objectPosition: 'center center' }}
+                      >
+                        <source src={directVideoUrl} type="video/mp4" />
+                        <source src={directVideoUrl} />
+                      </video>
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 z-10">
                       <p className="text-zinc-400 text-xs sm:text-sm">Gagal memuat video secara langsung.</p>
                       <button
                         type="button"
-                        onClick={() => { setVideoLoadFailed(false); setVideoStarted(true); }}
+                        onClick={() => { setVideoLoadFailed(false); setVideoStarted(true); setIsVideoBuffering(true); }}
                         className="px-4 py-2 bg-[#C5A880] text-black font-semibold text-xs rounded uppercase tracking-wider cursor-pointer hover:bg-[#E2D2BC] transition-colors"
                       >
                         Coba Putar Ulang
@@ -407,7 +472,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                   /* Click-to-Play Overlay — Landscape */
                   <button
                     type="button"
-                    onClick={() => { setVideoStarted(true); setVideoLoadFailed(false); }}
+                    onClick={() => { setVideoStarted(true); setVideoLoadFailed(false); setIsVideoBuffering(true); }}
                     className="w-full h-full relative flex items-center justify-center cursor-pointer group/play"
                     aria-label="Putar video"
                   >
@@ -431,16 +496,48 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
             /* ========================================================
                PHOTO GALLERY VIEWER
                ======================================================== */
-            <div className="flex flex-col items-center justify-center h-full max-w-5xl w-full min-h-0">
+            <div className="relative flex flex-col items-center justify-center h-full max-w-5xl w-full min-h-0">
               <div
-                className="relative flex items-center justify-center min-h-0"
+                className="relative flex items-center justify-center min-h-0 w-full"
                 style={{ height: allImages.length > 1 ? 'calc(100dvh - 210px)' : 'calc(100dvh - 160px)' }}
               >
+                {/* Photo Counter Badge */}
+                {allImages.length > 1 && (
+                  <div className="absolute top-2 left-2 sm:left-4 z-20 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md text-[#C5A880] text-[10px] sm:text-[11px] font-mono border border-[#C5A880]/30 shadow-lg">
+                    Foto {selectedPhotoIndex + 1} dari {allImages.length}
+                  </div>
+                )}
+
+                {/* Photo Prev Arrow Button on Photo */}
+                {allImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handlePrevPhoto(); }}
+                    className="absolute left-2 sm:left-4 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-black/60 hover:bg-[#C5A880] text-zinc-300 hover:text-black border border-zinc-700/80 hover:border-[#C5A880] flex items-center justify-center transition-all shadow-xl cursor-pointer"
+                    title="Foto Sebelumnya"
+                  >
+                    <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6" />
+                  </button>
+                )}
+
                 <img
+                  key={currentPhotoUrl}
                   src={normalizeFull(currentPhotoUrl)}
                   alt={project.title}
-                  className="max-h-full max-w-full object-contain rounded-lg border border-zinc-800 shadow-2xl"
+                  className="max-h-full max-w-full object-contain rounded-lg border border-zinc-800 shadow-2xl transition-opacity duration-200"
                 />
+
+                {/* Photo Next Arrow Button on Photo */}
+                {allImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleNextPhoto(); }}
+                    className="absolute right-2 sm:right-4 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-black/60 hover:bg-[#C5A880] text-zinc-300 hover:text-black border border-zinc-700/80 hover:border-[#C5A880] flex items-center justify-center transition-all shadow-xl cursor-pointer"
+                    title="Foto Berikutnya"
+                  >
+                    <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6" />
+                  </button>
+                )}
               </div>
 
               {/* Multi-Photo Thumbnail Strip */}
