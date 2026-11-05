@@ -3,6 +3,7 @@ const router = express.Router();
 const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { portfolioCache } = require('../cache');
+const { prewarmDriveVideos } = require('./media');
 
 // Automatically invalidate cache on any admin mutation
 router.use((req, res, next) => {
@@ -226,6 +227,24 @@ router.get('/projects', async (req, res) => {
     const responseData = { projects, totalCount };
     if (cacheKey) {
       portfolioCache.set(cacheKey, responseData, 180000);
+    }
+
+    // Background pre-warming of Google Drive video streams
+    if (!all && projects.length > 0) {
+      try {
+        const driveIds = [];
+        projects.forEach(p => {
+          const urls = [p.featured_video_url, ...(p.videos ? p.videos.map(v => v.video_url) : [])];
+          urls.forEach(u => {
+            if (!u) return;
+            const m = u.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (m && m[1]) driveIds.push(m[1]);
+          });
+        });
+        if (driveIds.length > 0 && typeof prewarmDriveVideos === 'function') {
+          prewarmDriveVideos([...new Set(driveIds)]);
+        }
+      } catch (_) {}
     }
 
     res.json(responseData);

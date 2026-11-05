@@ -32,8 +32,8 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const [selectedVideoIndex, setSelectedVideoIndex] = useState<number>(0);
   const [activeMediaMode, setActiveMediaMode] = useState<'video' | 'photo'>(initialMediaMode || 'video');
   const [videoLoadFailed, setVideoLoadFailed] = useState(false);
-  const [videoStarted, setVideoStarted] = useState(false); // click-to-play: video hanya load saat diklik
-  const [isVideoBuffering, setIsVideoBuffering] = useState(false);
+  const [videoStarted, setVideoStarted] = useState(true); // Langsung putar saat dibuka dari kartu
+  const [isVideoBuffering, setIsVideoBuffering] = useState(true);
   const touchStartX = useRef<number | null>(null);
 
   const total = projects.length;
@@ -44,8 +44,8 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
     setSelectedPhotoIndex(0);
     setSelectedVideoIndex(0);
     setVideoLoadFailed(false);
-    setVideoStarted(false); // reset play state tiap ganti project
-    setIsVideoBuffering(false);
+    setVideoStarted(true); // Langsung auto-play tiap ganti atau buka project video
+    setIsVideoBuffering(true);
     if (!project) return;
     
     if (initialMediaMode) {
@@ -365,10 +365,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                         onError={() => { setVideoLoadFailed(true); setIsVideoBuffering(false); }}
                         className="w-full h-full object-contain"
                         style={{ objectPosition: 'center center' }}
-                      >
-                        <source src={directVideoUrl} type="video/mp4" />
-                        <source src={directVideoUrl} />
-                      </video>
+                      />
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 z-10">
@@ -451,10 +448,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                         onError={() => { setVideoLoadFailed(true); setIsVideoBuffering(false); }}
                         className="w-full h-full object-contain"
                         style={{ objectPosition: 'center center' }}
-                      >
-                        <source src={directVideoUrl} type="video/mp4" />
-                        <source src={directVideoUrl} />
-                      </video>
+                      />
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 z-10">

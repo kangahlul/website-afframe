@@ -52,10 +52,7 @@ const VideoItem: React.FC<VideoItemProps> = ({ vid, idx, isPortrait, directUrl, 
             preload="auto"
             className="w-full h-full object-contain"
             style={{ objectPosition: 'center center' }}
-          >
-            <source src={directUrl} type="video/mp4" />
-            <source src={directUrl} />
-          </video>
+          />
         ) : (
           <button
             type="button"

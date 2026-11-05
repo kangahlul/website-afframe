@@ -302,9 +302,55 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// In-memory cache for resolved Google Drive download endpoints (TTL: 30 minutes)
+// Persistent HTTPS agent with keep-alive to reuse TLS connections to Google Drive CDN
+const streamAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 50,
+  maxFreeSockets: 10,
+  timeout: 60000,
+});
+
+// In-memory cache for resolved Google Drive download endpoints (TTL: 2 hours)
 // Eliminates the multi-hop handshake & HTML virus scan re-parsing on every Range request chunk!
 const driveResolvedCache = new Map();
+const inFlightPrewarms = new Set();
+
+function prewarmDriveVideo(fileId) {
+  if (!fileId || typeof fileId !== 'string') return;
+  const cleanId = fileId.replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!cleanId || driveResolvedCache.has(cleanId) || inFlightPrewarms.has(cleanId)) return;
+
+  inFlightPrewarms.add(cleanId);
+  const targetUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0&confirm=t`;
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': '*/*',
+    'Range': 'bytes=0-1',
+  };
+
+  const req = https.get(targetUrl, { agent: streamAgent, headers }, (res) => {
+    const cookies = (res.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      driveResolvedCache.set(cleanId, {
+        url: targetUrl,
+        cookie: cookies || '',
+        expiresAt: Date.now() + 1000 * 60 * 60 * 2,
+      });
+    }
+    res.resume();
+    inFlightPrewarms.delete(cleanId);
+  });
+  req.on('error', () => {
+    inFlightPrewarms.delete(cleanId);
+  });
+}
+
+function prewarmDriveVideos(fileIds = []) {
+  if (!Array.isArray(fileIds)) return;
+  fileIds.slice(0, 15).forEach((id, idx) => {
+    setTimeout(() => prewarmDriveVideo(id), idx * 250);
+  });
+}
 
 // GET /api/media/stream-drive?id=FILE_ID
 // Proxy Google Drive video dengan Range requests & CORS — clean HTML5 player tanpa UI Google Drive
@@ -317,7 +363,8 @@ router.get('/stream-drive', (req, res) => {
   const cleanId = fileId.replace(/[^a-zA-Z0-9_-]/g, '');
   if (!cleanId) return res.status(400).json({ error: 'ID tidak valid.' });
 
-  const targetUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0`;
+  // Direct confirm parameter immediately bypasses virus warning page
+  const targetUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0&confirm=t`;
 
   const forwardHeaders = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -337,7 +384,7 @@ router.get('/stream-drive', (req, res) => {
   if (cached && Date.now() < cached.expiresAt) {
     const fastHeaders = { ...forwardHeaders };
     if (cached.cookie) fastHeaders['Cookie'] = cached.cookie;
-    activeReq = https.get(cached.url, { headers: fastHeaders }, (driveRes) => {
+    activeReq = https.get(cached.url, { agent: streamAgent, headers: fastHeaders }, (driveRes) => {
       // Follow redirect if CDN rotated
       if (driveRes.statusCode >= 300 && driveRes.statusCode < 400 && driveRes.headers.location) {
         driveRes.resume();
@@ -345,7 +392,7 @@ router.get('/stream-drive', (req, res) => {
         return;
       }
       if (driveRes.statusCode >= 200 && driveRes.statusCode < 300) {
-        sendVideoResponse(req, res, driveRes);
+        sendVideoResponse(req, res, driveRes, cleanId);
         return;
       }
       // If cached URL returned non-2xx (e.g. token expired), evict and resolve fresh
@@ -365,7 +412,7 @@ router.get('/stream-drive', (req, res) => {
       return;
     }
 
-    activeReq = https.get(url, { headers: currentHeaders }, (driveRes) => {
+    activeReq = https.get(url, { agent: streamAgent, headers: currentHeaders }, (driveRes) => {
       const cookies = (driveRes.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
       const newHeaders = { ...currentHeaders };
       if (cookies) {
@@ -395,7 +442,7 @@ router.get('/stream-drive', (req, res) => {
           driveResolvedCache.set(cleanId, {
             url: confirmUrl,
             cookie: newHeaders['Cookie'] || '',
-            expiresAt: Date.now() + 1000 * 60 * 30 // 30 minutes
+            expiresAt: Date.now() + 1000 * 60 * 60 * 2 // 2 hours
           });
 
           fetchUrl(confirmUrl, newHeaders, redirectCount + 1);
@@ -408,12 +455,12 @@ router.get('/stream-drive', (req, res) => {
         driveResolvedCache.set(cleanId, {
           url,
           cookie: newHeaders['Cookie'] || '',
-          expiresAt: Date.now() + 1000 * 60 * 30
+          expiresAt: Date.now() + 1000 * 60 * 60 * 2
         });
       }
 
       // 3. Valid video stream received
-      sendVideoResponse(req, res, driveRes);
+      sendVideoResponse(req, res, driveRes, cleanId);
     });
 
     activeReq.on('error', (err) => {
@@ -425,7 +472,7 @@ router.get('/stream-drive', (req, res) => {
   fetchUrl(targetUrl, forwardHeaders);
 });
 
-function sendVideoResponse(req, res, driveRes) {
+function sendVideoResponse(req, res, driveRes, cleanId) {
   const status = driveRes.statusCode === 206 ? 206 : 200;
   res.statusCode = status;
   res.setHeader('Content-Type', 'video/mp4');
@@ -433,7 +480,8 @@ function sendVideoResponse(req, res, driveRes) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+  if (cleanId) res.setHeader('ETag', `"${cleanId}"`);
   if (driveRes.headers['content-range']) res.setHeader('Content-Range', driveRes.headers['content-range']);
   if (driveRes.headers['content-length']) res.setHeader('Content-Length', driveRes.headers['content-length']);
   driveRes.pipe(res);
@@ -443,3 +491,5 @@ function sendVideoResponse(req, res, driveRes) {
 }
 
 module.exports = router;
+module.exports.prewarmDriveVideo = prewarmDriveVideo;
+module.exports.prewarmDriveVideos = prewarmDriveVideos;
