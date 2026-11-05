@@ -5,7 +5,7 @@ import { Footer } from '../../components/public/Footer';
 import { Search, Eye, Play, ArrowUpRight, X, Film, Image as ImageIcon } from 'lucide-react';
 import { PortfolioProject, PortfolioCategory } from '../../types';
 import { api } from '../../lib/api';
-import { normalizeMediaUrl, normalizeThumb } from '../../lib/mediaUtils';
+import { normalizeMediaUrl, normalizeThumb, getDirectVideoUrl } from '../../lib/mediaUtils';
 
 // Lazy load lightbox — hanya didownload saat user klik karya (bukan saat halaman load)
 const PortfolioLightboxModal = lazy(() =>
@@ -45,6 +45,15 @@ export const PortfolioPage: React.FC = () => {
 
   // Modal Lightbox
   const [activeModalIndex, setActiveModalIndex] = useState<number | null>(null);
+
+  const preloadVideoChunk = (videoUrl?: string) => {
+    if (!videoUrl) return;
+    const directUrl = getDirectVideoUrl(videoUrl);
+    if (!directUrl || !directUrl.startsWith('/api/media/stream-drive')) return;
+    fetch(directUrl, {
+      headers: { Range: 'bytes=0-131072' },
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -237,6 +246,8 @@ export const PortfolioPage: React.FC = () => {
                   <div
                     key={project.id}
                     onClick={() => setActiveModalIndex(idx)}
+                    onMouseEnter={() => preloadVideoChunk(project.featured_video_url)}
+                    onTouchStart={() => preloadVideoChunk(project.featured_video_url)}
                     className="group relative flex flex-col bg-[#131316] border border-[#24242A] hover:border-[#C5A880]/60 rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1.5 shadow-xl hover:shadow-[#C5A880]/5"
                   >
                     {/* Media Container */}

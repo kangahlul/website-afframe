@@ -48,6 +48,16 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
   const sliderRef = useRef<HTMLDivElement>(null);
   const [hoveredVideoId, setHoveredVideoId] = useState<number | null>(null);
 
+  // Preload initial video chunk on hover/touch so it plays in 0.00s upon click
+  const preloadVideoChunk = (videoUrl?: string) => {
+    if (!videoUrl) return;
+    const directUrl = getDirectVideoUrl(videoUrl);
+    if (!directUrl || !directUrl.startsWith('/api/media/stream-drive')) return;
+    fetch(directUrl, {
+      headers: { Range: 'bytes=0-131072' },
+    }).catch(() => {});
+  };
+
   const loadData = React.useCallback(async () => {
     try {
       const [projRes, catRes] = await Promise.all([
@@ -295,7 +305,11 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                   <div
                     key={project.id}
                     onClick={() => setActiveModalIndex(idx)}
-                    onMouseEnter={() => setHoveredVideoId(project.id)}
+                    onMouseEnter={() => {
+                      setHoveredVideoId(project.id);
+                      preloadVideoChunk(project.featured_video_url);
+                    }}
+                    onTouchStart={() => preloadVideoChunk(project.featured_video_url)}
                     onMouseLeave={() => setHoveredVideoId(null)}
                     className={`group relative flex flex-col bg-[#131316] border border-[#24242A] hover:border-[#C5A880]/60 rounded-xl overflow-hidden cursor-pointer snap-start shrink-0 transition-all duration-300 hover:-translate-y-1.5 shadow-xl hover:shadow-[#C5A880]/5 ${
                       isPortrait
@@ -417,6 +431,8 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
                 <div
                   key={project.id}
                   onClick={() => setActiveModalIndex(idx)}
+                  onMouseEnter={() => preloadVideoChunk(project.featured_video_url)}
+                  onTouchStart={() => preloadVideoChunk(project.featured_video_url)}
                   className="group relative flex flex-col bg-[#131316] border border-[#24242A] hover:border-[#C5A880]/60 rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 shadow-lg"
                 >
                   <div className={`relative overflow-hidden bg-black ${

@@ -353,6 +353,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                       <video
                         key={directVideoUrl}
                         src={directVideoUrl}
+                        poster={normalizeThumb(project.cover_image_url)}
                         controls
                         autoPlay
                         playsInline
@@ -436,6 +437,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                       <video
                         key={directVideoUrl}
                         src={directVideoUrl}
+                        poster={normalizeThumb(project.cover_image_url)}
                         controls
                         autoPlay
                         playsInline
