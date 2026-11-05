@@ -144,21 +144,9 @@ export function getVideoEmbedUrl(url: string | null | undefined): string | null 
     }
   }
 
-  // Google Drive video preview (can be played in iframe): https://drive.google.com/file/d/ID/preview
-  if (trimmed.includes('drive.google.com/file/d/')) {
-    const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/file/d/${match[1]}/preview`;
-    }
-  }
-
-  if (trimmed.includes('drive.google.com/open?id=')) {
-    const match = trimmed.match(/id=([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/file/d/${match[1]}/preview`;
-    }
-  }
-
+  // NOTE: Google Drive URLs are intentionally NOT returned here.
+  // Drive preview iframes show Google Drive UI (download buttons, branding).
+  // All Drive videos MUST be served via HTML5 <video src={getDirectVideoUrl(url)}>.
   return null;
 }
 

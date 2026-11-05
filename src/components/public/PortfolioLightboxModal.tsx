@@ -306,30 +306,53 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
-                ) : !videoLoadFailed ? (
-                  <video
-                    key={directVideoUrl}
-                    src={directVideoUrl}
-                    controls
-                    autoPlay
-                    playsInline
-                    loop
-                    preload="none"
-                    onError={() => setVideoLoadFailed(true)}
-                    className="w-full h-full object-contain"
-                    style={{ objectPosition: 'center center' }}
-                  >
-                    <source src={directVideoUrl} type="video/mp4" />
-                    <source src={directVideoUrl} />
-                  </video>
+                ) : videoStarted ? (
+                  !videoLoadFailed ? (
+                    <video
+                      key={directVideoUrl}
+                      src={directVideoUrl}
+                      controls
+                      autoPlay
+                      playsInline
+                      loop
+                      preload="none"
+                      onError={() => setVideoLoadFailed(true)}
+                      className="w-full h-full object-contain"
+                      style={{ objectPosition: 'center center' }}
+                    >
+                      <source src={directVideoUrl} type="video/mp4" />
+                      <source src={directVideoUrl} />
+                    </video>
+                  ) : (
+                    <iframe
+                      src={driveFallbackUrl || activeVideoUrl}
+                      title={activeVideo?.title || project.title}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  )
                 ) : (
-                  <iframe
-                    src={driveFallbackUrl || activeVideoUrl}
-                    title={activeVideo?.title || project.title}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
+                  /* Click-to-Play Overlay — Portrait */
+                  <button
+                    type="button"
+                    onClick={() => setVideoStarted(true)}
+                    className="w-full h-full relative flex items-center justify-center cursor-pointer group/play"
+                    aria-label="Putar video"
+                  >
+                    <img
+                      src={normalizeThumb(project.cover_image_url)}
+                      alt={project.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/50 group-hover/play:bg-black/40 transition-colors" />
+                    <div className="relative z-10 flex flex-col items-center gap-3">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 border-2 border-[#C5A880] flex items-center justify-center shadow-2xl group-hover/play:scale-110 group-hover/play:border-[#E2D2BC] transition-all duration-200">
+                        <Play className="w-7 h-7 sm:w-9 sm:h-9 text-[#C5A880] fill-[#C5A880] ml-1" />
+                      </div>
+                      <span className="text-[11px] text-[#C5A880]/90 font-medium tracking-widest uppercase">Putar Video</span>
+                    </div>
+                  </button>
                 )}
               </div>
             ) : (
@@ -348,29 +371,52 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
-                ) : !videoLoadFailed ? (
-                  <video
-                    key={directVideoUrl}
-                    src={directVideoUrl}
-                    controls
-                    autoPlay
-                    playsInline
-                    preload="none"
-                    onError={() => setVideoLoadFailed(true)}
-                    className="w-full h-full object-contain"
-                    style={{ objectPosition: 'center center' }}
-                  >
-                    <source src={directVideoUrl} type="video/mp4" />
-                    <source src={directVideoUrl} />
-                  </video>
+                ) : videoStarted ? (
+                  !videoLoadFailed ? (
+                    <video
+                      key={directVideoUrl}
+                      src={directVideoUrl}
+                      controls
+                      autoPlay
+                      playsInline
+                      preload="none"
+                      onError={() => setVideoLoadFailed(true)}
+                      className="w-full h-full object-contain"
+                      style={{ objectPosition: 'center center' }}
+                    >
+                      <source src={directVideoUrl} type="video/mp4" />
+                      <source src={directVideoUrl} />
+                    </video>
+                  ) : (
+                    <iframe
+                      src={driveFallbackUrl || activeVideoUrl}
+                      title={activeVideo?.title || project.title}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  )
                 ) : (
-                  <iframe
-                    src={driveFallbackUrl || activeVideoUrl}
-                    title={activeVideo?.title || project.title}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
+                  /* Click-to-Play Overlay — Landscape */
+                  <button
+                    type="button"
+                    onClick={() => setVideoStarted(true)}
+                    className="w-full h-full relative flex items-center justify-center cursor-pointer group/play"
+                    aria-label="Putar video"
+                  >
+                    <img
+                      src={normalizeThumb(project.cover_image_url)}
+                      alt={project.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/50 group-hover/play:bg-black/40 transition-colors" />
+                    <div className="relative z-10 flex flex-col items-center gap-3">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 border-2 border-[#C5A880] flex items-center justify-center shadow-2xl group-hover/play:scale-110 group-hover/play:border-[#E2D2BC] transition-all duration-200">
+                        <Play className="w-7 h-7 sm:w-9 sm:h-9 text-[#C5A880] fill-[#C5A880] ml-1" />
+                      </div>
+                      <span className="text-[11px] text-[#C5A880]/90 font-medium tracking-widest uppercase">Putar Video</span>
+                    </div>
+                  </button>
                 )}
               </div>
             )

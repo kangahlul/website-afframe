@@ -28,7 +28,7 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
   const loadData = React.useCallback(async () => {
     try {
       const [projRes, catRes] = await Promise.all([
-        api.get<{ projects: PortfolioProject[] }>('/portfolio/projects', { limit: 16, all: false }),
+        api.get<{ projects: PortfolioProject[] }>('/portfolio/projects', { limit: 50, all: false }),
         api.get<{ categories: PortfolioCategory[] }>('/portfolio/categories'),
       ]);
       setProjects(projRes.projects || []);

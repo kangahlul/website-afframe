@@ -220,50 +220,21 @@ export const ProjectDetailPage: React.FC = () => {
                     ? project.videos
                     : [{ title: 'Video Utama', video_url: project.featured_video_url, orientation: project.orientation || 'portrait' }]
                   ).map((vid, idx) => {
-                    const isPortrait = vid.orientation === 'portrait';
+                    const isPortrait = (vid.orientation || 'portrait') === 'portrait';
                     const isDrive = isGoogleDriveUrl(vid.video_url);
                     const directUrl = getDirectVideoUrl(vid.video_url);
                     const embedUrl = !isDrive ? getVideoEmbedUrl(vid.video_url) : null;
                     return (
-                      <div key={idx} className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                            {isPortrait ? 'Reels 9:16' : 'Sinematik 16:9'}
-                          </span>
-                          <h4 className="font-medium text-white text-sm">
-                            {vid.title || `Video ${idx + 1}`}
-                          </h4>
-                        </div>
-
-                        <div className={`rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl flex items-center justify-center ${
-                          isPortrait
-                            ? 'w-full max-w-[340px] sm:max-w-[380px] aspect-[9/16] mx-auto border-2 border-[#C5A880]/40'
-                            : 'w-full max-w-4xl mx-auto aspect-video'
-                        }`}>
-                          {embedUrl ? (
-                            <iframe
-                              src={embedUrl}
-                              title={vid.title || project.title}
-                              className="w-full h-full border-0"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                            />
-                          ) : (
-                            <video
-                              src={directUrl}
-                              controls
-                              playsInline
-                              loop
-                              preload="none"
-                              className="w-full h-full object-contain"
-                              style={{ objectPosition: 'center center' }}
-                            >
-                              <source src={directUrl} type="video/mp4" />
-                              <source src={directUrl} />
-                            </video>
-                          )}
-                        </div>
-                      </div>
+                      <VideoItem
+                        key={idx}
+                        vid={vid}
+                        idx={idx}
+                        isPortrait={isPortrait}
+                        directUrl={directUrl}
+                        embedUrl={embedUrl}
+                        projectTitle={project.title}
+                        coverImageUrl={project.cover_image_url}
+                      />
                     );
                   })}
                 </div>
