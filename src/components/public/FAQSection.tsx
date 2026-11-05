@@ -8,16 +8,35 @@ interface FAQSectionProps {
   section?: WebsiteSection;
 }
 
+const getCachedFaqs = (): FaqItem[] => {
+  try {
+    const raw = localStorage.getItem('afframe_cached_faqs');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+};
+
 export const FAQSection: React.FC<FAQSectionProps> = ({ section }) => {
   const { settings } = useSite();
-  const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [faqs, setFaqs] = useState<FaqItem[]>(getCachedFaqs);
   const [openIndex, setOpenIndex] = useState<number | null>(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => {
+    try {
+      const cached = localStorage.getItem('afframe_cached_faqs');
+      return !cached || JSON.parse(cached).length === 0;
+    } catch {
+      return true;
+    }
+  });
 
   const loadFaqs = React.useCallback(async () => {
     try {
       const res = await api.get<{ faqs: FaqItem[] }>('/content/faqs');
-      setFaqs(res.faqs || []);
+      const faqList = res.faqs || [];
+      setFaqs(faqList);
+      try {
+        localStorage.setItem('afframe_cached_faqs', JSON.stringify(faqList));
+      } catch (e) {}
     } catch (err) {
       console.error('Failed to load FAQs:', err);
     } finally {

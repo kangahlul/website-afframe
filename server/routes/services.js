@@ -2,6 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { servicesCache } = require('../cache');
+
+// Automatically invalidate cache on any admin mutation
+router.use((req, res, next) => {
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    servicesCache.clear();
+  }
+  next();
+});
 
 function slugify(text) {
   return text
@@ -21,6 +30,11 @@ function slugify(text) {
 router.get('/', async (req, res) => {
   try {
     const { all } = req.query;
+    if (!all) {
+      const cached = servicesCache.get('public_services');
+      if (cached) return res.json(cached);
+    }
+
     let query = 'SELECT * FROM services';
     if (!all) {
       query += ' WHERE is_visible = 1';
@@ -29,23 +43,36 @@ router.get('/', async (req, res) => {
 
     const services = await db.prepare(query).all();
 
-    // Attach packages to each service
-    const getPackages = db.prepare(`
-      SELECT * FROM service_packages
-      WHERE service_id = ? ${!all ? 'AND is_published = 1' : ''}
-      ORDER BY sort_order ASC, id ASC
-    `);
-
-    for (const s of services) {
-      const pkgs = await getPackages.all(s.id);
-      s.packages = pkgs.map(p => ({
-        ...p,
-        deliverables: JSON.parse(p.deliverables_json || '[]'),
-        inclusions: JSON.parse(p.inclusions_json || '[]')
-      }));
+    // High performance batch attachment for packages
+    if (services.length > 0) {
+      const serviceIds = services.map(s => s.id);
+      const placeholders = serviceIds.map(() => '?').join(',');
+      const pkgsQuery = `
+        SELECT * FROM service_packages
+        WHERE service_id IN (${placeholders}) ${!all ? 'AND is_published = 1' : ''}
+        ORDER BY sort_order ASC, id ASC
+      `;
+      const allPkgs = await db.prepare(pkgsQuery).all(serviceIds);
+      const pkgMap = {};
+      allPkgs.forEach(p => {
+        if (!pkgMap[p.service_id]) pkgMap[p.service_id] = [];
+        pkgMap[p.service_id].push({
+          ...p,
+          deliverables: JSON.parse(p.deliverables_json || '[]'),
+          inclusions: JSON.parse(p.inclusions_json || '[]')
+        });
+      });
+      for (const s of services) {
+        s.packages = pkgMap[s.id] || [];
+      }
     }
 
-    res.json({ services });
+    const result = { services };
+    if (!all) {
+      servicesCache.set('public_services', result, 180000);
+    }
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -54,6 +81,7 @@ router.get('/', async (req, res) => {
 // POST /api/services (admin)
 router.post('/', authenticateToken, async (req, res) => {
   try {
+    servicesCache.clear();
     const { name, slug, short_description, icon_name, cover_image_url, sort_order } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Nama kategori layanan wajib diisi.' });
@@ -79,6 +107,7 @@ router.post('/', authenticateToken, async (req, res) => {
 // PUT /api/services/:id (admin)
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
+    servicesCache.clear();
     const { id } = req.params;
     const { name, slug, short_description, icon_name, cover_image_url, is_visible, sort_order } = req.body;
 
@@ -112,6 +141,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // DELETE /api/services/:id (admin)
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
+    servicesCache.clear();
     const { id } = req.params;
     await db.prepare('DELETE FROM service_packages WHERE service_id = ?').run(id);
     await db.prepare('DELETE FROM services WHERE id = ?').run(id);
@@ -156,6 +186,7 @@ router.get('/packages/all', async (req, res) => {
 // POST /api/services/packages (admin)
 router.post('/packages', authenticateToken, async (req, res) => {
   try {
+    servicesCache.clear();
     const {
       service_id, category_name, package_name,
       regular_price, promotional_price,
@@ -206,6 +237,7 @@ router.post('/packages', authenticateToken, async (req, res) => {
 // POST /api/services/packages/:id/duplicate (admin)
 router.post('/packages/:id/duplicate', authenticateToken, async (req, res) => {
   try {
+    servicesCache.clear();
     const { id } = req.params;
     const original = await db.prepare('SELECT * FROM service_packages WHERE id = ?').get(id);
     if (!original) {
@@ -243,6 +275,7 @@ router.post('/packages/:id/duplicate', authenticateToken, async (req, res) => {
 // PUT /api/services/packages/:id (admin)
 router.put('/packages/:id', authenticateToken, async (req, res) => {
   try {
+    servicesCache.clear();
     const { id } = req.params;
     const {
       service_id, category_name, package_name,
@@ -309,6 +342,7 @@ router.put('/packages/:id', authenticateToken, async (req, res) => {
 // DELETE /api/services/packages/:id (admin)
 router.delete('/packages/:id', authenticateToken, async (req, res) => {
   try {
+    servicesCache.clear();
     const { id } = req.params;
     await db.prepare('DELETE FROM service_packages WHERE id = ?').run(id);
     res.json({ message: 'Paket berhasil dihapus.' });

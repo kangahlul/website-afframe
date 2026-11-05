@@ -25,12 +25,30 @@ interface ServicesSectionProps {
   onSelectPackage?: (serviceId: number, packageId: number, serviceName: string, packageName: string) => void;
 }
 
+const getCachedServices = (): Service[] => {
+  try {
+    const raw = localStorage.getItem('afframe_cached_services');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+};
+
 export const ServicesSection: React.FC<ServicesSectionProps> = ({ section, onSelectPackage }) => {
   const { settings } = useSite();
-  const [services, setServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<Service[]>(getCachedServices);
   // Default to first service id so it's clean and not showing all at once
-  const [selectedFilter, setSelectedFilter] = useState<'all' | number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | number | null>(() => {
+    const cached = getCachedServices();
+    return cached.length > 0 ? cached[0].id : null;
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    try {
+      const cached = localStorage.getItem('afframe_cached_services');
+      return !cached || JSON.parse(cached).length === 0;
+    } catch {
+      return true;
+    }
+  });
 
   // Slider scroll state
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -48,6 +66,9 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ section, onSel
       const res = await api.get<{ services: Service[] }>('/services');
       const svcList = res.services || [];
       setServices(svcList);
+      try {
+        localStorage.setItem('afframe_cached_services', JSON.stringify(svcList));
+      } catch (e) {}
       setSelectedFilter(prev => {
         // Keep existing selected service if still valid, otherwise default to first service
         if (prev === null) {

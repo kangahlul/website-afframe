@@ -2,6 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { contentCache } = require('../cache');
+
+// Automatically invalidate cache on any admin mutation
+router.use((req, res, next) => {
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    contentCache.clear();
+  }
+  next();
+});
 
 function slugify(text) {
   return text
@@ -21,13 +30,19 @@ function slugify(text) {
 router.get('/faqs', async (req, res) => {
   try {
     const { all } = req.query;
+    if (!all) {
+      const cached = contentCache.get('faqs');
+      if (cached) return res.json(cached);
+    }
     let query = 'SELECT * FROM faq_items';
     if (!all) {
       query += ' WHERE is_published = 1';
     }
     query += ' ORDER BY sort_order ASC, id ASC';
     const faqs = await db.prepare(query).all();
-    res.json({ faqs });
+    const result = { faqs };
+    if (!all) contentCache.set('faqs', result, 180000);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -99,13 +114,19 @@ router.delete('/faqs/:id', authenticateToken, async (req, res) => {
 router.get('/benefits', async (req, res) => {
   try {
     const { all } = req.query;
+    if (!all) {
+      const cached = contentCache.get('benefits');
+      if (cached) return res.json(cached);
+    }
     let query = 'SELECT * FROM benefits';
     if (!all) {
       query += ' WHERE is_visible = 1';
     }
     query += ' ORDER BY sort_order ASC, id ASC';
     const benefits = await db.prepare(query).all();
-    res.json({ benefits });
+    const result = { benefits };
+    if (!all) contentCache.set('benefits', result, 180000);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -178,13 +199,19 @@ router.delete('/benefits/:id', authenticateToken, async (req, res) => {
 router.get('/terms', async (req, res) => {
   try {
     const { all } = req.query;
+    if (!all) {
+      const cached = contentCache.get('terms');
+      if (cached) return res.json(cached);
+    }
     let query = 'SELECT * FROM terms_content';
     if (!all) {
       query += ' WHERE is_published = 1';
     }
     query += ' ORDER BY clause_number ASC, sort_order ASC, id ASC';
     const terms = await db.prepare(query).all();
-    res.json({ terms });
+    const result = { terms };
+    if (!all) contentCache.set('terms', result, 180000);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -256,13 +283,19 @@ router.delete('/terms/:id', authenticateToken, async (req, res) => {
 router.get('/service-areas', async (req, res) => {
   try {
     const { all } = req.query;
+    if (!all) {
+      const cached = contentCache.get('service_areas');
+      if (cached) return res.json(cached);
+    }
     let query = 'SELECT * FROM service_areas';
     if (!all) {
       query += ' WHERE is_visible = 1';
     }
     query += ' ORDER BY sort_order ASC, id ASC';
     const areas = await db.prepare(query).all();
-    res.json({ areas });
+    const result = { areas };
+    if (!all) contentCache.set('service_areas', result, 180000);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -335,6 +368,11 @@ router.delete('/service-areas/:id', authenticateToken, async (req, res) => {
 router.get('/navigation', async (req, res) => {
   try {
     const { all, location } = req.query;
+    if (!all) {
+      const cacheKey = `navigation_${location || 'all'}`;
+      const cached = contentCache.get(cacheKey);
+      if (cached) return res.json(cached);
+    }
     let query = 'SELECT * FROM navigation_items WHERE 1=1';
     const params = [];
 
@@ -348,7 +386,11 @@ router.get('/navigation', async (req, res) => {
     query += ' ORDER BY sort_order ASC, id ASC';
 
     const items = await db.prepare(query).all(...params);
-    res.json({ items });
+    const result = { items };
+    if (!all) {
+      contentCache.set(`navigation_${location || 'all'}`, result, 180000);
+    }
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -2,6 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { portfolioCache } = require('../cache');
+
+// Automatically invalidate cache on any admin mutation
+router.use((req, res, next) => {
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    portfolioCache.clear();
+  }
+  next();
+});
 
 // Helper to generate clean slug
 function slugify(text) {
@@ -22,6 +31,11 @@ function slugify(text) {
 router.get('/categories', async (req, res) => {
   try {
     const { all } = req.query;
+    if (!all) {
+      const cached = portfolioCache.get('categories_public');
+      if (cached) return res.json(cached);
+    }
+
     let query = `
       SELECT pc.*, COUNT(pp.id) as project_count
       FROM portfolio_categories pc
@@ -33,7 +47,11 @@ router.get('/categories', async (req, res) => {
     query += ' GROUP BY pc.id ORDER BY pc.sort_order ASC, pc.id ASC';
 
     const categories = await db.prepare(query).all();
-    res.json({ categories });
+    const result = { categories };
+    if (!all) {
+      portfolioCache.set('categories_public', result, 180000);
+    }
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -42,6 +60,7 @@ router.get('/categories', async (req, res) => {
 // POST /api/portfolio/categories (admin)
 router.post('/categories', authenticateToken, async (req, res) => {
   try {
+    portfolioCache.clear();
     const { name, slug, description, cover_image_url, thumbnail_url, sort_order } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Nama kategori wajib diisi.' });
@@ -66,6 +85,7 @@ router.post('/categories', authenticateToken, async (req, res) => {
 // PUT /api/portfolio/categories/:id (admin)
 router.put('/categories/:id', authenticateToken, async (req, res) => {
   try {
+    portfolioCache.clear();
     const { id } = req.params;
     const { name, slug, description, cover_image_url, thumbnail_url, is_visible, sort_order } = req.body;
 
@@ -99,6 +119,7 @@ router.put('/categories/:id', authenticateToken, async (req, res) => {
 // DELETE /api/portfolio/categories/:id (admin)
 router.delete('/categories/:id', authenticateToken, async (req, res) => {
   try {
+    portfolioCache.clear();
     const { id } = req.params;
     await db.prepare('UPDATE portfolio_projects SET category_id = NULL WHERE category_id = ?').run(id);
     await db.prepare('DELETE FROM portfolio_categories WHERE id = ?').run(id);
@@ -116,6 +137,13 @@ router.delete('/categories/:id', authenticateToken, async (req, res) => {
 router.get('/projects', async (req, res) => {
   try {
     const { category, featured, search, all, limit = 200, page = 1, media_type } = req.query;
+
+    const cacheKey = !all ? `proj_${category || ''}_${featured || ''}_${search || ''}_${limit}_${page}_${media_type || ''}` : null;
+    if (cacheKey) {
+      const cached = portfolioCache.get(cacheKey);
+      if (cached) return res.json(cached);
+    }
+
     let query = `
       SELECT pp.*, pc.name as category_name, pc.slug as category_slug
       FROM portfolio_projects pp
@@ -158,24 +186,49 @@ router.get('/projects', async (req, res) => {
 
     const projects = await db.prepare(query).all(...params);
 
-    // Attach gallery images and videos to each project
-    const getImages = db.prepare('SELECT id, image_url, caption, alt_text, sort_order FROM portfolio_images WHERE project_id = ? ORDER BY sort_order ASC');
-    const getVideos = db.prepare('SELECT id, title, video_url, orientation, sort_order FROM portfolio_videos WHERE project_id = ? ORDER BY sort_order ASC');
-    for (const p of projects) {
-      p.images = await getImages.all(p.id);
-      const vids = await getVideos.all(p.id);
-      if (vids && vids.length > 0) {
-        p.videos = vids;
-      } else if (p.featured_video_url) {
-        p.videos = [{ id: 0, title: 'Video Utama', video_url: p.featured_video_url, orientation: p.orientation || 'portrait', sort_order: 1 }];
-      } else {
-        p.videos = [];
+    // High performance batch attachment: eliminates N+1 query loop to remote DB
+    if (projects.length > 0) {
+      const projectIds = projects.map(p => p.id);
+      const placeholders = projectIds.map(() => '?').join(',');
+
+      const [allImages, allVideos] = await Promise.all([
+        db.prepare(`SELECT id, project_id, image_url, caption, alt_text, sort_order FROM portfolio_images WHERE project_id IN (${placeholders}) ORDER BY sort_order ASC`).all(projectIds),
+        db.prepare(`SELECT id, project_id, title, video_url, orientation, sort_order FROM portfolio_videos WHERE project_id IN (${placeholders}) ORDER BY sort_order ASC`).all(projectIds),
+      ]);
+
+      const imageMap = {};
+      allImages.forEach(img => {
+        if (!imageMap[img.project_id]) imageMap[img.project_id] = [];
+        imageMap[img.project_id].push(img);
+      });
+
+      const videoMap = {};
+      allVideos.forEach(vid => {
+        if (!videoMap[vid.project_id]) videoMap[vid.project_id] = [];
+        videoMap[vid.project_id].push(vid);
+      });
+
+      for (const p of projects) {
+        p.images = imageMap[p.id] || [];
+        const vids = videoMap[p.id] || [];
+        if (vids.length > 0) {
+          p.videos = vids;
+        } else if (p.featured_video_url) {
+          p.videos = [{ id: 0, title: 'Video Utama', video_url: p.featured_video_url, orientation: p.orientation || 'portrait', sort_order: 1 }];
+        } else {
+          p.videos = [];
+        }
       }
     }
 
     const totalCount = (await db.prepare('SELECT COUNT(*) as count FROM portfolio_projects' + (!all ? ' WHERE is_published = 1' : '')).get())?.count || 0;
 
-    res.json({ projects, totalCount });
+    const responseData = { projects, totalCount };
+    if (cacheKey) {
+      portfolioCache.set(cacheKey, responseData, 180000);
+    }
+
+    res.json(responseData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -237,6 +290,7 @@ router.get('/projects/:slug', async (req, res) => {
 // POST /api/portfolio/projects (admin create)
 router.post('/projects', authenticateToken, async (req, res) => {
   try {
+    portfolioCache.clear();
     const {
       category_id, title, slug, short_description, full_description,
       client_name, project_date, location, cover_image_url, featured_video_url,
@@ -342,6 +396,7 @@ router.post('/projects', authenticateToken, async (req, res) => {
 // PUT /api/portfolio/projects/:id (admin update)
 router.put('/projects/:id', authenticateToken, async (req, res) => {
   try {
+    portfolioCache.clear();
     const { id } = req.params;
     const {
       category_id, title, slug, short_description, full_description,
@@ -464,6 +519,7 @@ router.put('/projects/:id', authenticateToken, async (req, res) => {
 // DELETE /api/portfolio/projects/:id (admin delete)
 router.delete('/projects/:id', authenticateToken, async (req, res) => {
   try {
+    portfolioCache.clear();
     const { id } = req.params;
     await db.prepare('DELETE FROM portfolio_videos WHERE project_id = ?').run(id);
     await db.prepare('DELETE FROM portfolio_images WHERE project_id = ?').run(id);

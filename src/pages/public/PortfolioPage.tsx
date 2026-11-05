@@ -12,13 +12,36 @@ const PortfolioLightboxModal = lazy(() =>
   import('../../components/public/PortfolioLightboxModal').then(m => ({ default: m.PortfolioLightboxModal }))
 );
 
+const getCachedProjects = (): PortfolioProject[] => {
+  try {
+    const raw = localStorage.getItem('afframe_cached_portfolio_projects');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+};
+
+const getCachedCategories = (): PortfolioCategory[] => {
+  try {
+    const raw = localStorage.getItem('afframe_cached_portfolio_categories');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+};
+
 export const PortfolioPage: React.FC = () => {
-  const [projects, setProjects] = useState<PortfolioProject[]>([]);
-  const [categories, setCategories] = useState<PortfolioCategory[]>([]);
+  const [projects, setProjects] = useState<PortfolioProject[]>(getCachedProjects);
+  const [categories, setCategories] = useState<PortfolioCategory[]>(getCachedCategories);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [mediaFilter, setMediaFilter] = useState<'all' | 'video' | 'photo'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(() => {
+    try {
+      const cached = localStorage.getItem('afframe_cached_portfolio_projects');
+      return !cached || JSON.parse(cached).length === 0;
+    } catch {
+      return true;
+    }
+  });
 
   // Modal Lightbox
   const [activeModalIndex, setActiveModalIndex] = useState<number | null>(null);
@@ -26,7 +49,9 @@ export const PortfolioPage: React.FC = () => {
   useEffect(() => {
     async function loadData() {
       try {
-        setLoading(true);
+        if (selectedCategory !== 'all' || searchQuery) {
+          setLoading(true);
+        }
         const [projRes, catRes] = await Promise.all([
           api.get<{ projects: PortfolioProject[] }>('/portfolio/projects', {
             category: selectedCategory !== 'all' ? selectedCategory : undefined,
@@ -35,8 +60,16 @@ export const PortfolioPage: React.FC = () => {
           }),
           api.get<{ categories: PortfolioCategory[] }>('/portfolio/categories')
         ]);
-        setProjects(projRes.projects || []);
-        setCategories(catRes.categories || []);
+        const fetchedProjects = projRes.projects || [];
+        const fetchedCategories = catRes.categories || [];
+        setProjects(fetchedProjects);
+        setCategories(fetchedCategories);
+        if (selectedCategory === 'all' && !searchQuery) {
+          try {
+            localStorage.setItem('afframe_cached_portfolio_projects', JSON.stringify(fetchedProjects));
+            localStorage.setItem('afframe_cached_portfolio_categories', JSON.stringify(fetchedCategories));
+          } catch (e) {}
+        }
       } catch (err) {
         console.error('Failed to load portfolio items:', err);
       } finally {

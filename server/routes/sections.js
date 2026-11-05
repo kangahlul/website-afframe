@@ -2,11 +2,25 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { sectionsCache } = require('../cache');
+
+// Automatically invalidate cache on any admin mutation
+router.use((req, res, next) => {
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    sectionsCache.clear();
+  }
+  next();
+});
 
 // GET /api/sections - List sections
 router.get('/', async (req, res) => {
   try {
     const { all } = req.query;
+    if (!all) {
+      const cached = sectionsCache.get('public_sections');
+      if (cached) return res.json(cached);
+    }
+
     let query = 'SELECT * FROM website_sections';
     if (!all) {
       query += ' WHERE is_visible = 1';
@@ -14,7 +28,11 @@ router.get('/', async (req, res) => {
     query += ' ORDER BY sort_order ASC, id ASC';
 
     const sections = await db.prepare(query).all();
-    res.json({ sections });
+    const result = { sections };
+    if (!all) {
+      sectionsCache.set('public_sections', result, 180000);
+    }
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -37,6 +55,7 @@ router.get('/:key', async (req, res) => {
 // PUT /api/sections/:id - Update section
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
+    sectionsCache.clear();
     const { id } = req.params;
     const {
       title, subtitle, description,
@@ -85,6 +104,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // POST /api/sections/reorder - Batch update section order
 router.post('/reorder', authenticateToken, async (req, res) => {
   try {
+    sectionsCache.clear();
     const { items } = req.body; // array of { id, sort_order, is_visible }
     if (!Array.isArray(items)) {
       return res.status(400).json({ error: 'Data urutan section tidak valid.' });
@@ -110,6 +130,7 @@ router.post('/reorder', authenticateToken, async (req, res) => {
 // POST /api/sections - Add custom reusable section
 router.post('/', authenticateToken, async (req, res) => {
   try {
+    sectionsCache.clear();
     const {
       section_key, title, subtitle, description,
       cta_primary_text, cta_primary_url,
@@ -148,6 +169,7 @@ router.post('/', authenticateToken, async (req, res) => {
 // DELETE /api/sections/:id
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
+    sectionsCache.clear();
     const { id } = req.params;
     const section = await db.prepare('SELECT * FROM website_sections WHERE id = ?').get(id);
     if (!section) {

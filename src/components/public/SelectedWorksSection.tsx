@@ -10,13 +10,36 @@ interface SelectedWorksSectionProps {
   section?: WebsiteSection;
 }
 
+const getCachedProjects = (): PortfolioProject[] => {
+  try {
+    const raw = localStorage.getItem('afframe_cached_portfolio_projects');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+};
+
+const getCachedCategories = (): PortfolioCategory[] => {
+  try {
+    const raw = localStorage.getItem('afframe_cached_portfolio_categories');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+};
+
 export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ section }) => {
-  const [projects, setProjects] = useState<PortfolioProject[]>([]);
-  const [categories, setCategories] = useState<PortfolioCategory[]>([]);
+  const [projects, setProjects] = useState<PortfolioProject[]>(getCachedProjects);
+  const [categories, setCategories] = useState<PortfolioCategory[]>(getCachedCategories);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [mediaFilter, setMediaFilter] = useState<'all' | 'video' | 'photo'>('all');
   const [viewMode, setViewMode] = useState<'slider' | 'grid'>('slider');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => {
+    try {
+      const cached = localStorage.getItem('afframe_cached_portfolio_projects');
+      return !cached || JSON.parse(cached).length === 0;
+    } catch {
+      return true;
+    }
+  });
 
   // Modal Lightbox & Slider
   const [activeModalIndex, setActiveModalIndex] = useState<number | null>(null);
@@ -31,8 +54,14 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
         api.get<{ projects: PortfolioProject[] }>('/portfolio/projects', { limit: 200, all: false }),
         api.get<{ categories: PortfolioCategory[] }>('/portfolio/categories'),
       ]);
-      setProjects(projRes.projects || []);
-      setCategories(catRes.categories || []);
+      const fetchedProjects = projRes.projects || [];
+      const fetchedCategories = catRes.categories || [];
+      setProjects(fetchedProjects);
+      setCategories(fetchedCategories);
+      try {
+        localStorage.setItem('afframe_cached_portfolio_projects', JSON.stringify(fetchedProjects));
+        localStorage.setItem('afframe_cached_portfolio_categories', JSON.stringify(fetchedCategories));
+      } catch (e) {}
     } catch (err) {
       console.error('Failed to load portfolio:', err);
     } finally {

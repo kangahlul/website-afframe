@@ -2,16 +2,22 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { settingsCache } = require('../cache');
 
 // GET /api/settings - Public: returns all settings as a key-value dictionary
 router.get('/', async (req, res) => {
   try {
+    const cached = settingsCache.get('public_settings');
+    if (cached) return res.json(cached);
+
     const rows = await db.prepare('SELECT key, value, type, group_name FROM site_settings').all();
     const settings = {};
     for (const row of rows) {
       settings[row.key] = row.value;
     }
-    res.json({ settings, list: rows });
+    const result = { settings, list: rows };
+    settingsCache.set('public_settings', result, 180000);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -20,6 +26,7 @@ router.get('/', async (req, res) => {
 // PUT /api/settings - Admin: batch update settings
 router.put('/', authenticateToken, async (req, res) => {
   try {
+    settingsCache.clear();
     const updates = req.body; // e.g. { brand_name: "AFFRAME", whatsapp_number: "085755152579", ... }
 
     if (!updates || typeof updates !== 'object') {
