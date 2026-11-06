@@ -488,9 +488,6 @@ router.get('/stream-drive', (req, res) => {
   // Not on disk yet: start background download so subsequent requests & loops are local!
   startBackgroundDownload(cleanId);
 
-  // Direct confirm parameter immediately bypasses virus warning page
-  const targetUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0&confirm=t`;
-
   const forwardHeaders = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': '*/*',
