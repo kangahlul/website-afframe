@@ -32,7 +32,8 @@ function slugify(text) {
 router.get('/categories', async (req, res) => {
   try {
     const { all } = req.query;
-    if (!all) {
+    const isAll = all === 'true' || all === '1';
+    if (!isAll) {
       const cached = portfolioCache.get('categories_public');
       if (cached) return res.json(cached);
     }
@@ -42,14 +43,14 @@ router.get('/categories', async (req, res) => {
       FROM portfolio_categories pc
       LEFT JOIN portfolio_projects pp ON pp.category_id = pc.id AND pp.is_published = 1
     `;
-    if (!all) {
+    if (!isAll) {
       query += ' WHERE pc.is_visible = 1';
     }
     query += ' GROUP BY pc.id ORDER BY pc.sort_order ASC, pc.id ASC';
 
     const categories = await db.prepare(query).all();
     const result = { categories };
-    if (!all) {
+    if (!isAll) {
       portfolioCache.set('categories_public', result, 180000);
     }
     res.json(result);
@@ -138,8 +139,9 @@ router.delete('/categories/:id', authenticateToken, async (req, res) => {
 router.get('/projects', async (req, res) => {
   try {
     const { category, featured, search, all, limit = 200, page = 1, media_type } = req.query;
+    const isAll = all === 'true' || all === '1';
 
-    const cacheKey = !all ? `proj_${category || ''}_${featured || ''}_${search || ''}_${limit}_${page}_${media_type || ''}` : null;
+    const cacheKey = !isAll ? `proj_${category || ''}_${featured || ''}_${search || ''}_${limit}_${page}_${media_type || ''}` : null;
     if (cacheKey) {
       const cached = portfolioCache.get(cacheKey);
       if (cached) return res.json(cached);
@@ -153,7 +155,7 @@ router.get('/projects', async (req, res) => {
     `;
     const params = [];
 
-    if (!all) {
+    if (!isAll) {
       query += ' AND pp.is_published = 1';
     }
 

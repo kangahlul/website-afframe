@@ -65,7 +65,7 @@ export const PortfolioPage: React.FC = () => {
           api.get<{ projects: PortfolioProject[] }>('/portfolio/projects', {
             category: selectedCategory !== 'all' ? selectedCategory : undefined,
             search: searchQuery || undefined,
-            all: false
+            limit: 200,
           }),
           api.get<{ categories: PortfolioCategory[] }>('/portfolio/categories')
         ]);
