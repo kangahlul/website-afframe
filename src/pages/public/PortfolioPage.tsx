@@ -93,6 +93,22 @@ export const PortfolioPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [selectedCategory, searchQuery]);
 
+  // Warm up initial 2 video streams in background for instant playback
+  useEffect(() => {
+    if (projects.length === 0) return;
+    const initialVideos = projects
+      .filter(p => p.featured_video_url)
+      .slice(0, 2);
+
+    const timer = setTimeout(() => {
+      initialVideos.forEach(p => {
+        preloadVideoChunk(p.featured_video_url);
+      });
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [projects]);
+
   // Filter projects by Media Type
   const filteredProjects = projects.filter(p => {
     const hasVideo = p.media_type === 'video' || Boolean(p.featured_video_url && p.featured_video_url.trim()) || (p.videos && p.videos.length > 0);

@@ -57,6 +57,12 @@ const VideoItem: React.FC<VideoItemProps> = ({ vid, idx, isPortrait, directUrl, 
           <button
             type="button"
             onClick={() => setStarted(true)}
+            onMouseEnter={() => {
+              if (directUrl) fetch(directUrl, { headers: { Range: 'bytes=0-131072' } }).catch(() => {});
+            }}
+            onTouchStart={() => {
+              if (directUrl) fetch(directUrl, { headers: { Range: 'bytes=0-131072' } }).catch(() => {});
+            }}
             className="w-full h-full relative flex items-center justify-center cursor-pointer group"
             aria-label="Putar video"
           >

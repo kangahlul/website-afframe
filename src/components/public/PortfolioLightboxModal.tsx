@@ -186,6 +186,19 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
     setVideoStarted(true); // Langsung mulai putar saat video dibuka / ganti video tab
   }, [selectedVideoIndex, activeVideoUrl]);
 
+  // Intelligent Pre-fetch next video chunk for zero-delay instant switching
+  useEffect(() => {
+    if (!isOpen || total <= 1) return;
+    const nextIdx = (currentIndex + 1) % total;
+    const nextProj = projects[nextIdx];
+    if (nextProj?.featured_video_url) {
+      const nextDirect = getDirectVideoUrl(nextProj.featured_video_url);
+      if (nextDirect) {
+        fetch(nextDirect, { headers: { Range: 'bytes=0-262144' } }).catch(() => {});
+      }
+    }
+  }, [isOpen, currentIndex, total, projects]);
+
   const currentPhotoUrl = allImages[selectedPhotoIndex] || project.cover_image_url;
 
   const waConsultMessage = encodeURIComponent(

@@ -83,6 +83,22 @@ export const SelectedWorksSection: React.FC<SelectedWorksSectionProps> = ({ sect
     loadData();
   }, [loadData]);
 
+  // Warm up initial 2 video streams in background so first click is instantaneous
+  useEffect(() => {
+    if (projects.length === 0) return;
+    const initialVideos = projects
+      .filter(p => p.featured_video_url)
+      .slice(0, 2);
+
+    const timer = setTimeout(() => {
+      initialVideos.forEach(p => {
+        preloadVideoChunk(p.featured_video_url);
+      });
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [projects]);
+
   const scrollSlider = (direction: 'left' | 'right') => {
     if (!sliderRef.current) return;
     const scrollAmount = direction === 'left' ? -380 : 380;
