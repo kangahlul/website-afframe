@@ -179,7 +179,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
   const isPortrait = (activeVideo?.orientation || project.orientation || 'portrait') === 'portrait';
   const isDriveVideo = isGoogleDriveUrl(activeVideoUrl);
   const directVideoUrl = getDirectVideoUrl(activeVideoUrl);
-  const embedUrl = !isDriveVideo ? getVideoEmbedUrl(activeVideoUrl) : null;
+  const embedUrl = getVideoEmbedUrl(activeVideoUrl);
 
   useEffect(() => {
     setVideoLoadFailed(false);

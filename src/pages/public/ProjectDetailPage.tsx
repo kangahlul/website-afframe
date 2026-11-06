@@ -220,7 +220,7 @@ export const ProjectDetailPage: React.FC = () => {
                     const isPortrait = (vid.orientation || 'portrait') === 'portrait';
                     const isDrive = isGoogleDriveUrl(vid.video_url);
                     const directUrl = getDirectVideoUrl(vid.video_url);
-                    const embedUrl = !isDrive ? getVideoEmbedUrl(vid.video_url) : null;
+                    const embedUrl = getVideoEmbedUrl(vid.video_url);
                     return (
                       <VideoItem
                         key={idx}

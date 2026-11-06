@@ -148,9 +148,12 @@ export function getVideoEmbedUrl(url: string | null | undefined): string | null 
     }
   }
 
-  // NOTE: Google Drive URLs are intentionally NOT returned here.
-  // Drive preview iframes show Google Drive UI (download buttons, branding).
-  // All Drive videos MUST be served via HTML5 <video src={getDirectVideoUrl(url)}>.
+  // Google Drive: https://drive.google.com/file/d/ID/preview (0 Vercel bandwidth, supported natively by Google)
+  const driveId = getGoogleDriveFileId(trimmed);
+  if (driveId) {
+    return `https://drive.google.com/file/d/${driveId}/preview`;
+  }
+
   return null;
 }
 
