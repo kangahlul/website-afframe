@@ -183,7 +183,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
 
   useEffect(() => {
     setVideoLoadFailed(false);
-    setVideoStarted(false); // reset saat ganti video tab
+    setVideoStarted(true); // Langsung mulai putar saat video dibuka / ganti video tab
   }, [selectedVideoIndex, activeVideoUrl]);
 
   const currentPhotoUrl = allImages[selectedPhotoIndex] || project.cover_image_url;

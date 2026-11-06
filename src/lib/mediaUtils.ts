@@ -62,17 +62,19 @@ export function isGoogleDriveUrl(url: string | null | undefined): boolean {
   return url.includes('drive.google.com') || url.includes('drive.usercontent.google.com');
 }
 
+export const CLOUDFLARE_VIDEO_PROXY = 'https://afframe-video.kangahlul98.workers.dev';
+
 /**
  * Returns a direct media streaming URL for HTML5 <video> / <img>.
- * For Google Drive files, streams directly from Google CDN (drive.usercontent.google.com)
- * with Range requests (HTTP 206) and CORS support, consuming 0 bytes of Vercel bandwidth!
+ * For Google Drive files, streams via Cloudflare Worker proxy which supports
+ * CORS, Range requests (HTTP 206), and edge caching with 0 Vercel bandwidth!
  */
 export function getDirectVideoUrl(url: string | null | undefined): string {
   if (!url) return '';
   const trimmed = url.trim();
   const driveId = getGoogleDriveFileId(trimmed);
   if (driveId) {
-    return `https://drive.usercontent.google.com/download?id=${driveId}&export=download&authuser=0&confirm=t`;
+    return `${CLOUDFLARE_VIDEO_PROXY}/?id=${driveId}`;
   }
   return trimmed;
 }
@@ -148,12 +150,8 @@ export function getVideoEmbedUrl(url: string | null | undefined): string | null 
     }
   }
 
-  // Google Drive: https://drive.google.com/file/d/ID/preview (0 Vercel bandwidth, supported natively by Google)
-  const driveId = getGoogleDriveFileId(trimmed);
-  if (driveId) {
-    return `https://drive.google.com/file/d/${driveId}/preview`;
-  }
-
+  // NOTE: Google Drive URLs stream directly via Cloudflare Worker into HTML5 <video>
+  // This keeps the player 100% clean (no Google Drive UI, no download buttons) and perfectly fitted!
   return null;
 }
 
