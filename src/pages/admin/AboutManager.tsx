@@ -11,6 +11,8 @@ export const AboutManager: React.FC = () => {
   const [subtitle, setSubtitle] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [philosophyTitle, setPhilosophyTitle] = useState('Filosofi Karya');
+  const [philosophyQuote, setPhilosophyQuote] = useState('"Menghargai setiap detik berharga dan menjadikannya karya visual yang hidup selamanya."');
   const [sectionId, setSectionId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,6 +29,8 @@ export const AboutManager: React.FC = () => {
           setSubtitle(res.section.subtitle || '');
           setDescription(res.section.description || '');
           setImageUrl(res.section.background_media_url || '');
+          if (res.section.cta_secondary_text) setPhilosophyTitle(res.section.cta_secondary_text);
+          if (res.section.cta_secondary_url) setPhilosophyQuote(res.section.cta_secondary_url);
         }
       } catch (err) {
         console.error('Failed to load about section:', err);
@@ -60,9 +64,11 @@ export const AboutManager: React.FC = () => {
         title,
         subtitle,
         description,
-        background_media_url: imageUrl
+        background_media_url: imageUrl,
+        cta_secondary_text: philosophyTitle,
+        cta_secondary_url: philosophyQuote,
       });
-      setSuccessMsg('Bagian Tentang AFFRAME berhasil diperbarui!');
+      setSuccessMsg('Bagian Tentang AFFRAME & Filosofi berhasil diperbarui!');
       setTimeout(() => setSuccessMsg(''), 3000);
       refreshSiteData();
     } catch (err: any) {
@@ -166,6 +172,55 @@ export const AboutManager: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Filosofi Visual Floating Badge */}
+        <div className="p-4 bg-[#18181D] border border-zinc-800 rounded-sm space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#C5A880]" />
+            <h3 className="font-semibold text-zinc-200 text-xs uppercase tracking-wider">
+              Badge & Kutipan Filosofi Karya
+            </h3>
+          </div>
+          <p className="text-[11px] text-zinc-400">
+            Teks ini tampil di kotak melayang artistik di atas foto representasi studio.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-1">
+              <label className="text-zinc-400 block mb-1 font-semibold">Label / Badge</label>
+              <input
+                type="text"
+                value={philosophyTitle}
+                onChange={e => setPhilosophyTitle(e.target.value)}
+                placeholder="Contoh: Filosofi Karya"
+                className="w-full px-3 py-2 bg-[#121215] border border-zinc-800 rounded text-zinc-200 text-xs"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="text-zinc-400 block mb-1 font-semibold">Kutipan / Narasi Filosofi</label>
+              <textarea
+                rows={2}
+                value={philosophyQuote}
+                onChange={e => setPhilosophyQuote(e.target.value)}
+                placeholder='Contoh: "Menghargai setiap detik berharga dan menjadikannya karya visual yang hidup selamanya."'
+                className="w-full px-3 py-2 bg-[#121215] border border-zinc-800 rounded text-zinc-200 font-serif italic text-xs leading-relaxed"
+              />
+            </div>
+          </div>
+
+          {/* Live Preview Box */}
+          <div className="mt-2 p-3 bg-[#0E0E11] border border-[#C5A880]/30 rounded flex items-center gap-3">
+            <div className="p-3 bg-[#131316] border border-white/10 rounded w-full">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#C5A880] font-sans font-semibold block">
+                {philosophyTitle || 'Filosofi Karya'}
+              </span>
+              <p className="font-serif italic text-xs text-[#F8F6F0] mt-1">
+                {philosophyQuote || '"Menghargai setiap detik berharga dan menjadikannya karya visual yang hidup selamanya."'}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="pt-4 flex justify-end">

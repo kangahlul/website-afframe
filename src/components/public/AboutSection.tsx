@@ -21,6 +21,12 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ section }) => {
     'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200&auto=format&fit=crop';
   const bgUrl = normalizeFull(rawBgUrl);
 
+  const philosophyTitle = section?.cta_secondary_text || 'Filosofi Karya';
+  const rawQuote =
+    section?.cta_secondary_url ||
+    'Menghargai setiap detik berharga dan menjadikannya karya visual yang hidup selamanya.';
+  const philosophyQuote = rawQuote.replace(/^["']|["']$/g, '').trim();
+
   return (
     <section id="about" className="pt-14 pb-20 bg-[#09090A] relative border-t border-[#24242A]/60 overflow-hidden scroll-mt-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -37,10 +43,10 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ section }) => {
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               <div className="absolute bottom-6 left-6 right-6 p-4 rounded-sm bg-[#131316]/90 backdrop-blur-md border border-white/10">
                 <span className="text-[10px] uppercase tracking-[0.25em] text-[#C5A880] font-sans font-semibold">
-                  Filosofi Karya
+                  {philosophyTitle}
                 </span>
                 <p className="font-serif italic text-sm text-[#F8F6F0] mt-1">
-                  "Menghargai setiap detik berharga dan menjadikannya karya visual yang hidup selamanya."
+                  "{philosophyQuote}"
                 </p>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSite } from '../../context/SiteContext';
 import { Navbar } from '../../components/public/Navbar';
 import { Footer } from '../../components/public/Footer';
 import { AboutSection } from '../../components/public/AboutSection';
@@ -7,6 +8,9 @@ import { PublicationSection } from '../../components/public/PublicationSection';
 import { ServiceAreasSection } from '../../components/public/ServiceAreasSection';
 
 export const AboutPage: React.FC = () => {
+  const { sections } = useSite();
+  const getSection = (key: string) => sections.find(s => s.section_key === key);
+
   return (
     <div className="min-h-screen bg-[#0C0C0D] text-[#E4E4E7] flex flex-col">
       <Navbar />
@@ -26,10 +30,10 @@ export const AboutPage: React.FC = () => {
           </div>
         </div>
 
-        <AboutSection />
-        <WhyUsSection />
-        <PublicationSection />
-        <ServiceAreasSection />
+        <AboutSection section={getSection('about')} />
+        <WhyUsSection section={getSection('why_us')} />
+        <PublicationSection section={getSection('publication')} />
+        <ServiceAreasSection section={getSection('service_areas')} />
       </main>
 
       <Footer />
