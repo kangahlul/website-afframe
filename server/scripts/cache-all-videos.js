@@ -49,7 +49,7 @@ async function run() {
     const t0 = Date.now();
 
     try {
-      await downloadVideo(id, partFile, targetFile);
+      await downloadVideoWithRetry(id, partFile, targetFile);
       const sz = fs.statSync(targetFile).size;
       console.log(`[${i + 1}/${ids.length}] SUCCESS: ${title} (${(sz / 1024 / 1024).toFixed(1)}MB in ${((Date.now() - t0) / 1000).toFixed(1)}s)`);
     } catch (err) {
@@ -61,6 +61,19 @@ async function run() {
   }
 
   console.log('[Video Cache Warmer] All videos cached on local disk! Video playback is now 100% INSTANT!');
+}
+
+async function downloadVideoWithRetry(cleanId, partFile, targetFile, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await downloadVideo(cleanId, partFile, targetFile);
+      return;
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      console.log(`[Retry ${attempt}/${maxRetries}] Network hiccup for ${cleanId} (${err.message}). Retrying in 3s...`);
+      await new Promise(r => setTimeout(r, 3000));
+    }
+  }
 }
 
 function downloadVideo(cleanId, partFile, targetFile) {

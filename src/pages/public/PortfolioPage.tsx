@@ -49,7 +49,7 @@ export const PortfolioPage: React.FC = () => {
   const preloadVideoChunk = (videoUrl?: string) => {
     if (!videoUrl) return;
     const directUrl = getDirectVideoUrl(videoUrl);
-    if (!directUrl || !directUrl.startsWith('/api/media/stream-drive')) return;
+    if (!directUrl) return;
     fetch(directUrl, {
       headers: { Range: 'bytes=0-131072' },
     }).catch(() => {});

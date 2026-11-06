@@ -464,6 +464,16 @@ router.get('/stream-drive', (req, res) => {
   const cleanId = fileId.replace(/[^a-zA-Z0-9_-]/g, '');
   if (!cleanId) return res.status(400).json({ error: 'ID tidak valid.' });
 
+  // Direct confirm parameter immediately bypasses virus warning page
+  const targetUrl = `https://drive.usercontent.google.com/download?id=${cleanId}&export=download&authuser=0&confirm=t`;
+
+  // On Vercel / serverless edge or production, ALWAYS issue a 302 redirect directly to Google Drive CDN
+  // This completely eliminates Fast Origin Transfer bandwidth consumption (drops 150MB down to ~300 bytes)
+  if (isVercel || process.env.NODE_ENV === 'production') {
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
+    return res.redirect(302, targetUrl);
+  }
+
   // 1. Ultra Fast Path: serve from local disk cache if already downloaded
   const localCachedFile = path.join(videoCacheDir, `${cleanId}.mp4`);
   if (fs.existsSync(localCachedFile)) {

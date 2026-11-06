@@ -64,16 +64,15 @@ export function isGoogleDriveUrl(url: string | null | undefined): boolean {
 
 /**
  * Returns a direct media streaming URL for HTML5 <video> / <img>.
- * For Google Drive files, streams through /api/media/stream-drive which adds
- * proper video/mp4 MIME type, cross-origin headers, and range requests (HTTP 206)
- * for seamless native playback without Google Drive UI clutter.
+ * For Google Drive files, streams directly from Google CDN (drive.usercontent.google.com)
+ * with Range requests (HTTP 206) and CORS support, consuming 0 bytes of Vercel bandwidth!
  */
 export function getDirectVideoUrl(url: string | null | undefined): string {
   if (!url) return '';
   const trimmed = url.trim();
   const driveId = getGoogleDriveFileId(trimmed);
   if (driveId) {
-    return `/api/media/stream-drive?id=${driveId}`;
+    return `https://drive.usercontent.google.com/download?id=${driveId}&export=download&authuser=0&confirm=t`;
   }
   return trimmed;
 }
