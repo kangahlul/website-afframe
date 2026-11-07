@@ -199,6 +199,21 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
     }
   }, [isOpen, currentIndex, total, projects]);
 
+  const handleVideoCanPlay = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    setIsVideoBuffering(false);
+    const vid = e.currentTarget;
+    if (vid && vid.paused) {
+      const p = vid.play();
+      if (p !== undefined) {
+        p.catch(() => {
+          // If browser policy blocks sound autoplay, play muted immediately
+          vid.muted = true;
+          vid.play().catch(() => {});
+        });
+      }
+    }
+  };
+
   const currentPhotoUrl = allImages[selectedPhotoIndex] || project.cover_image_url;
 
   const waConsultMessage = encodeURIComponent(
@@ -373,7 +388,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                         loop
                         preload="auto"
                         onLoadedData={() => setIsVideoBuffering(false)}
-                        onCanPlay={() => setIsVideoBuffering(false)}
+                        onCanPlay={handleVideoCanPlay}
                         onWaiting={() => setIsVideoBuffering(true)}
                         onPlaying={() => setIsVideoBuffering(false)}
                         onError={() => { setVideoLoadFailed(true); setIsVideoBuffering(false); }}
@@ -457,7 +472,7 @@ export const PortfolioLightboxModal: React.FC<PortfolioLightboxModalProps> = ({
                         loop
                         preload="auto"
                         onLoadedData={() => setIsVideoBuffering(false)}
-                        onCanPlay={() => setIsVideoBuffering(false)}
+                        onCanPlay={handleVideoCanPlay}
                         onWaiting={() => setIsVideoBuffering(true)}
                         onPlaying={() => setIsVideoBuffering(false)}
                         onError={() => { setVideoLoadFailed(true); setIsVideoBuffering(false); }}

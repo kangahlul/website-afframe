@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Outlet, Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Image, Palette, Layers, Globe, FolderKanban,
   Tags, Package, Inbox, Info, Sparkles, HelpCircle, FileText,
@@ -33,10 +33,9 @@ export const AdminLayout: React.FC = () => {
     );
   }
 
-  // If unauthenticated, redirect to login
+  // If unauthenticated, redirect to login cleanly via Navigate component
   if (!isAuthenticated) {
-    navigate('/admin/login');
-    return null;
+    return <Navigate to="/admin/login" replace />;
   }
 
   const menuSections: { title: string; items: NavMenuItem[] }[] = [

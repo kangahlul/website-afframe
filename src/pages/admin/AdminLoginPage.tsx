@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { Lock, Mail, ArrowRight, ShieldCheck, Camera } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
@@ -7,9 +7,14 @@ import { BrandLogo } from '../../components/common/BrandLogo';
 import { normalizeMediaUrl } from '../../lib/mediaUtils';
 
 export const AdminLoginPage: React.FC = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const { settings } = useSite();
   const navigate = useNavigate();
+
+  // If already authenticated, redirect straight to /admin
+  if (isAuthenticated) {
+    return <Navigate to="/admin" replace />;
+  }
 
   const [email, setEmail] = useState('admin@afframe.com');
   const [password, setPassword] = useState('Afframe2026!');

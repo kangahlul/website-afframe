@@ -78,6 +78,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST /api/services/reorder (admin - batch reorder service categories)
+router.post('/reorder', authenticateToken, async (req, res) => {
+  try {
+    servicesCache.clear();
+    const { items } = req.body;
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ error: 'Format data urutan kategori tidak valid.' });
+    }
+
+    for (const item of items) {
+      if (item && item.id !== undefined && item.sort_order !== undefined) {
+        await db.prepare('UPDATE services SET sort_order = ? WHERE id = ?').run(Number(item.sort_order), Number(item.id));
+      }
+    }
+
+    res.json({ message: 'Urutan kategori layanan berhasil diperbarui.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST /api/services (admin)
 router.post('/', authenticateToken, async (req, res) => {
   try {
@@ -178,6 +199,27 @@ router.get('/packages/all', async (req, res) => {
     }));
 
     res.json({ packages });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/services/packages/reorder (admin - batch reorder service packages)
+router.post('/packages/reorder', authenticateToken, async (req, res) => {
+  try {
+    servicesCache.clear();
+    const { items } = req.body;
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ error: 'Format data urutan paket tidak valid.' });
+    }
+
+    for (const item of items) {
+      if (item && item.id !== undefined && item.sort_order !== undefined) {
+        await db.prepare('UPDATE service_packages SET sort_order = ? WHERE id = ?').run(Number(item.sort_order), Number(item.id));
+      }
+    }
+
+    res.json({ message: 'Urutan paket layanan berhasil diperbarui.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

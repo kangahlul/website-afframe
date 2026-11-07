@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Package, Plus, Edit3, Trash2, Copy, Eye, EyeOff, Star,
-  Check, X, Clock, DollarSign, Layers
+  Check, X, Clock, DollarSign, Layers, ArrowUp, ArrowDown, ArrowLeft, ArrowRight
 } from 'lucide-react';
 import { Service, ServicePackage } from '../../types';
 import { api } from '../../lib/api';
@@ -53,6 +53,7 @@ export const ServicesPackagesManager: React.FC = () => {
   }, []);
 
   const currentService = services.find(s => s.id === selectedServiceId) || services[0];
+  const currentServiceIndex = services.findIndex(s => s.id === currentService?.id);
 
   // Package Modal Openers
   const openAddPackage = () => {
@@ -156,6 +157,60 @@ export const ServicesPackagesManager: React.FC = () => {
       fetchServices();
     } catch (err: any) {
       alert(err.message || 'Gagal mengubah favorit');
+    }
+  };
+
+  const handleMovePackage = async (index: number, direction: 'up' | 'down') => {
+    if (!currentService || !currentService.packages) return;
+    const pkgs = [...currentService.packages];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= pkgs.length) return;
+
+    // Swap positions
+    const temp = pkgs[index];
+    pkgs[index] = pkgs[targetIndex];
+    pkgs[targetIndex] = temp;
+
+    // Sequential sort_order
+    const items = pkgs.map((p, idx) => ({
+      id: p.id,
+      sort_order: idx + 1
+    }));
+
+    // Optimistic UI update
+    setServices(prev =>
+      prev.map(s => (s.id === currentService.id ? { ...s, packages: pkgs } : s))
+    );
+
+    try {
+      await api.post('/services/packages/reorder', { items });
+    } catch (err: any) {
+      console.error('Failed to reorder packages:', err);
+      fetchServices();
+    }
+  };
+
+  const handleMoveService = async (index: number, direction: 'left' | 'right') => {
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= services.length) return;
+
+    const newServices = [...services];
+    const temp = newServices[index];
+    newServices[index] = newServices[targetIndex];
+    newServices[targetIndex] = temp;
+
+    const items = newServices.map((s, idx) => ({
+      id: s.id,
+      sort_order: idx + 1
+    }));
+
+    setServices(newServices);
+
+    try {
+      await api.post('/services/reorder', { items });
+    } catch (err: any) {
+      console.error('Failed to reorder services:', err);
+      fetchServices();
     }
   };
 
@@ -265,12 +320,38 @@ export const ServicesPackagesManager: React.FC = () => {
 
       {/* Current Category Info Banner */}
       {currentService && (
-        <div className="p-4 bg-[#121215] border border-[#24242A] rounded-sm flex items-center justify-between gap-4">
+        <div className="p-4 bg-[#121215] border border-[#24242A] rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-white">{currentService.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-white">{currentService.name}</h2>
+              <span className="text-[10px] text-zinc-400 font-mono bg-zinc-800/80 px-2 py-0.5 rounded">
+                Kategori #{currentServiceIndex + 1} dari {services.length}
+              </span>
+            </div>
             <p className="text-xs text-zinc-400 mt-0.5">{currentService.short_description || 'Kategori layanan resmi AFFRAME.'}</p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Category Order Buttons */}
+            <div className="flex items-center gap-1 bg-[#18181D] px-2 py-1 rounded border border-zinc-800 text-xs text-zinc-300">
+              <span className="text-[10px] text-zinc-400 uppercase tracking-wider mr-1">Urutan:</span>
+              <button
+                onClick={() => handleMoveService(currentServiceIndex, 'left')}
+                disabled={currentServiceIndex <= 0}
+                className="p-1 text-zinc-400 hover:text-[#C5A880] disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                title="Geser Kategori ke Kiri"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleMoveService(currentServiceIndex, 'right')}
+                disabled={currentServiceIndex >= services.length - 1}
+                className="p-1 text-zinc-400 hover:text-[#C5A880] disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                title="Geser Kategori ke Kanan"
+              >
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             <button
               onClick={() => openEditService(currentService)}
               className="p-1.5 text-zinc-400 hover:text-white"
@@ -292,7 +373,7 @@ export const ServicesPackagesManager: React.FC = () => {
       {/* Package Cards for Current Service */}
       {currentService && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {currentService.packages?.map(pkg => (
+          {currentService.packages?.map((pkg, index) => (
             <div
               key={pkg.id}
               className={`p-6 rounded-sm bg-[#121215] border flex flex-col justify-between transition-all ${
@@ -361,14 +442,37 @@ export const ServicesPackagesManager: React.FC = () => {
 
               {/* Bottom Actions */}
               <div className="pt-4 border-t border-zinc-800 flex items-center justify-between text-xs">
-                <button
-                  onClick={() => togglePackagePublish(pkg)}
-                  className={`px-2 py-0.5 rounded text-[10px] uppercase font-semibold ${
-                    pkg.is_published ? 'bg-emerald-950 text-emerald-400' : 'bg-zinc-800 text-zinc-500'
-                  }`}
-                >
-                  {pkg.is_published ? 'Publik' : 'Draft'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => togglePackagePublish(pkg)}
+                    className={`px-2 py-0.5 rounded text-[10px] uppercase font-semibold ${
+                      pkg.is_published ? 'bg-emerald-950 text-emerald-400' : 'bg-zinc-800 text-zinc-500'
+                    }`}
+                  >
+                    {pkg.is_published ? 'Publik' : 'Draft'}
+                  </button>
+
+                  {/* Reorder package buttons */}
+                  <div className="flex items-center bg-[#1A1A20] rounded border border-zinc-700/60 px-1.5 py-0.5 gap-1">
+                    <span className="text-[10px] text-zinc-400 font-mono font-medium">#{index + 1}</span>
+                    <button
+                      onClick={() => handleMovePackage(index, 'up')}
+                      disabled={index === 0}
+                      title="Geser Paket Lebih Awal (Urutan Naik)"
+                      className="p-0.5 text-zinc-400 hover:text-[#C5A880] disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    >
+                      <ArrowUp className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleMovePackage(index, 'down')}
+                      disabled={index === (currentService.packages?.length || 0) - 1}
+                      title="Geser Paket Lebih Akhir (Urutan Turun)"
+                      className="p-0.5 text-zinc-400 hover:text-[#C5A880] disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    >
+                      <ArrowDown className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
 
                 <div className="flex items-center gap-2">
                   <button
